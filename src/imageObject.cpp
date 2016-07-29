@@ -32,30 +32,8 @@ ImageObject::ImageObject(PointPicker& picker, wxWindow &parent, wxWindowID id,
 	const wxBitmap &image, const wxPoint &pos, const wxSize &size)
 	: wxStaticBitmap(&parent, id, image, pos, size), picker(picker)
 {
-	picker.SetImageObject(this);
 	mouseMoved = false;
 	originalImage = image;
-}
-
-//==========================================================================
-// Class:			ImageObject
-// Function:		~ImageObject
-//
-// Description:		Destructor for ImageObject class.
-//
-// Input Arguments:
-//		None
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		None
-//
-//==========================================================================
-ImageObject::~ImageObject()
-{
-	picker.SetImageObject(NULL);
 }
 
 //==========================================================================

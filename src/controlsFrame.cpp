@@ -210,7 +210,10 @@ END_EVENT_TABLE();
 //==========================================================================
 void ControlsFrame::CopyToClipboardToggle(wxCommandEvent& event)
 {
-	// TODO:  Implement
+	if (event.IsChecked())
+		picker.SetClipboardMode(PointPicker::ClipBoth);
+	else
+		picker.SetClipboardMode(PointPicker::ClipNone);
 }
 
 //==========================================================================

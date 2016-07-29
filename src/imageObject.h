@@ -18,7 +18,7 @@ public:
 	ImageObject(PointPicker& picker, wxWindow &parent, wxWindowID id, const wxBitmap &image,
 		const wxPoint &pos, const wxSize &size);
 
-	virtual ~ImageObject();
+	virtual ~ImageObject() {}
 
 	virtual void SetBitmap(const wxBitmap& bitmap);
 	void HandleSizeChange();

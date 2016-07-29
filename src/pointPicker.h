@@ -6,9 +6,6 @@
 #ifndef POINT_PICKER_H_
 #define POINT_PICKER_H_
 
-// Local forward declarations
-class ImageObject;
-
 class PointPicker
 {
 public:
@@ -17,13 +14,24 @@ public:
 	void AddPoint(const double& rawX, const double& rawY,
 		const double& xScale, const double& yScale,
 		const double& xOffset, const double& yOffset);
-	inline void SetImageObject(const ImageObject *i) { image = i; }
+
+	enum ClipboardMode
+	{
+		ClipNone,
+		ClipX,
+		ClipY,
+		ClipBoth
+	};
+
+	void SetClipboardMode(const ClipboardMode& mode) { clipMode = mode; }
 
 private:
-	const ImageObject *image;
-
 	static double ScaleOrdinate(const double& value,
 		const double& scale, const double& offset);
+
+	ClipboardMode clipMode;
+
+	void HandleClipboardMode(const double& x, const double& y) const;
 };
 
 #endif// POINT_PICKER_H_

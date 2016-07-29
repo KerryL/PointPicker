@@ -5,11 +5,13 @@
 
 // Standard C++ headers
 #include <cstdlib>
+#include <cassert>
+
+// wxWidgets headers
+#include <wx/clipbrd.h>
 
 // Local headers
 #include "pointPicker.h"
-
-#include <wx/wx.h>// TODO:  Remove
 
 //==========================================================================
 // Class:			PointPicker
@@ -29,7 +31,7 @@
 //==========================================================================
 PointPicker::PointPicker()
 {
-	image = NULL;
+	clipMode = ClipNone;
 }
 
 //==========================================================================
@@ -59,7 +61,40 @@ void PointPicker::AddPoint(const double& rawX, const double& rawY,
 {
 	const double x(ScaleOrdinate(rawX, xScale, xOffset));
 	const double y(ScaleOrdinate(rawY, yScale, yOffset));
-	wxMessageBox(wxString::Format(_T("%f, %f"), x, y));
+
+	HandleClipboardMode(x, y);
+}
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		HandleClipboardMode
+//
+// Description:		Handles necessary clipboard interaction.
+//
+// Input Arguments:
+//		x	= const double&
+//		y	= const double&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void PointPicker::HandleClipboardMode(const double& x, const double& y) const
+{
+	if (clipMode != ClipNone && wxTheClipboard->Open())
+	{
+		if (clipMode == ClipX)
+			wxTheClipboard->SetData(new wxTextDataObject(wxString::Format(_T("%f"), x)));
+		else if (clipMode == ClipY)
+			wxTheClipboard->SetData(new wxTextDataObject(wxString::Format(_T("%f"), y)));
+		else if (clipMode == ClipBoth)
+			wxTheClipboard->SetData(new wxTextDataObject(wxString::Format(_T("%f\t%f"), x, y)));
+		else
+			assert(false);
+	}
 }
 
 //==========================================================================
