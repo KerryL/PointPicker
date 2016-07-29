@@ -58,6 +58,7 @@ private:
 	void PointAreCurveDataClicked(wxCommandEvent& event);
 	void GridClicked(wxGridEvent& event);
 	void OnClose(wxCloseEvent& event);
+	void OnActivate(wxActivateEvent& event);
 
 	wxStaticBoxSizer *plotDataGroup;
 	wxGrid* grid;

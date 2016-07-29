@@ -47,8 +47,7 @@ ControlsFrame::ControlsFrame() : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaul
 // Class:			ControlsFrame
 // Function:		OnClose
 //
-// Description:		Denstructor for ControlsFrame class.  Frees memory and
-//					releases GUI object managers.
+// Description:		Handles window close events.
 //
 // Input Arguments:
 //		event	= wxCloseEvent&
@@ -65,6 +64,30 @@ void ControlsFrame::OnClose(wxCloseEvent& event)
 	isClosing = true;
 	if (imageFrame)
 		imageFrame->Close(true);
+
+	event.Skip();
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		OnActivate
+//
+// Description:		Handles window getting focus events.
+//
+// Input Arguments:
+//		event	= wxFocusEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::OnActivate(wxActivateEvent& event)
+{
+	if (imageFrame && !imageFrame->HasFocus())// TODO:  Not quite right
+		imageFrame->Raise();
 
 	event.Skip();
 }
@@ -189,7 +212,14 @@ void ControlsFrame::SetProperties()
 BEGIN_EVENT_TABLE(ControlsFrame, wxFrame)
 	EVT_TOGGLEBUTTON(idCopyToClipboard, ControlsFrame::CopyToClipboardToggle)
 	EVT_TOGGLEBUTTON(idExtractPlotData, ControlsFrame::ExtractPlotDataToggle)
+	EVT_BUTTON(idResetXAxis, ControlsFrame::ResetXAxisClicked)
+	EVT_BUTTON(idResetYAxis, ControlsFrame::ResetYAxisClicked)
+	EVT_BUTTON(idSavePlotData, ControlsFrame::SavePlotDataClicked)
+	EVT_RADIOBUTTON(idPointsAreXAxis, ControlsFrame::PointAreXAxisClicked)
+	EVT_RADIOBUTTON(idPointsAreYAxis, ControlsFrame::PointAreYAxisClicked)
+	EVT_RADIOBUTTON(idPointsAreCurveData, ControlsFrame::PointAreCurveDataClicked)
 	EVT_CLOSE(ControlsFrame::OnClose)
+	EVT_ACTIVATE(ControlsFrame::OnActivate)
 END_EVENT_TABLE();
 
 //==========================================================================
@@ -234,8 +264,22 @@ void ControlsFrame::CopyToClipboardToggle(wxCommandEvent& event)
 //==========================================================================
 void ControlsFrame::ExtractPlotDataToggle(wxCommandEvent& event)
 {
-	// TODO:  Implement
 	plotDataGroup->GetStaticBox()->Enable(event.IsChecked());
+	if (event.IsChecked())
+	{
+		wxRadioButton* xAxis(static_cast<wxRadioButton*>(FindWindowById(idPointsAreXAxis, this)));
+		wxRadioButton* yAxis(static_cast<wxRadioButton*>(FindWindowById(idPointsAreXAxis, this)));
+		assert(xAxis && yAxis);
+
+		if (xAxis->GetValue())
+			picker.SetDataExtractionMode(PointPicker::DataXAxis);
+		else if (yAxis->GetValue())
+			picker.SetDataExtractionMode(PointPicker::DataYAxis);
+		else
+			picker.SetDataExtractionMode(PointPicker::DataCurve);
+	}
+	else
+		picker.SetDataExtractionMode(PointPicker::DataNone);
 }
 
 //==========================================================================
@@ -256,7 +300,7 @@ void ControlsFrame::ExtractPlotDataToggle(wxCommandEvent& event)
 //==========================================================================
 void ControlsFrame::ResetXAxisClicked(wxCommandEvent& WXUNUSED(event))
 {
-	// TODO:  Implement
+	picker.ResetXAxis();
 }
 
 //==========================================================================
@@ -277,7 +321,7 @@ void ControlsFrame::ResetXAxisClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 void ControlsFrame::ResetYAxisClicked(wxCommandEvent& WXUNUSED(event))
 {
-	// TODO:  Implement
+	picker.ResetYAxis();
 }
 
 //==========================================================================
@@ -299,6 +343,7 @@ void ControlsFrame::ResetYAxisClicked(wxCommandEvent& WXUNUSED(event))
 void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 {
 	// TODO:  Implement
+	//Use picker.GetCurveData();
 }
 
 //==========================================================================
@@ -319,7 +364,7 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 void ControlsFrame::PointAreXAxisClicked(wxCommandEvent& WXUNUSED(event))
 {
-	// TODO:  Implement
+	picker.SetDataExtractionMode(PointPicker::DataXAxis);
 }
 
 //==========================================================================
@@ -340,7 +385,7 @@ void ControlsFrame::PointAreXAxisClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 void ControlsFrame::PointAreYAxisClicked(wxCommandEvent& WXUNUSED(event))
 {
-	// TODO:  Implement
+	picker.SetDataExtractionMode(PointPicker::DataYAxis);
 }
 
 //==========================================================================
@@ -361,7 +406,7 @@ void ControlsFrame::PointAreYAxisClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 void ControlsFrame::PointAreCurveDataClicked(wxCommandEvent& WXUNUSED(event))
 {
-	// TODO:  Implement
+	picker.SetDataExtractionMode(PointPicker::DataCurve);
 }
 
 //==========================================================================
@@ -408,6 +453,7 @@ bool ControlsFrame::LoadFiles(const wxArrayString &fileList)
 
 	wxImage newImage(fileList[0]);
 	imageFrame->SetImage(newImage);
+	picker.Reset();
 
 	return true;
 }

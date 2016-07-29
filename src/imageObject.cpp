@@ -127,7 +127,7 @@ void ImageObject::OnDrag(wxMouseEvent& event)
 //		None
 //
 //==========================================================================
-void ImageObject::OnZoom(wxMouseEvent& event)
+void ImageObject::OnZoom(wxMouseEvent& WXUNUSED(event))
 {
 	/*if (event.GetWheelRotation() > 0)
 	{
