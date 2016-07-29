@@ -154,12 +154,16 @@
     <ClCompile Include="..\src\controlsFrame.cpp" />
     <ClCompile Include="..\src\imageDropTarget.cpp" />
     <ClCompile Include="..\src\imageFrame.cpp" />
+    <ClCompile Include="..\src\imageObject.cpp" />
+    <ClCompile Include="..\src\pointPicker.cpp" />
     <ClCompile Include="..\src\pointPickerApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\controlsFrame.h" />
     <ClInclude Include="..\src\imageDropTarget.h" />
     <ClInclude Include="..\src\imageFrame.h" />
+    <ClInclude Include="..\src\imageObject.h" />
+    <ClInclude Include="..\src\pointPicker.h" />
     <ClInclude Include="..\src\pointPickerApp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -10,19 +10,29 @@
 #include <wx/wx.h>
 #include <wx/grid.h>
 
+// Local headers
+#include "pointPicker.h"
+
+// Local forware declarations
 class ImageFrame;
 
 class ControlsFrame : public wxFrame
 {
 public:
 	ControlsFrame();
-	~ControlsFrame();
 
 	bool LoadFiles(const wxArrayString &fileList);
+	inline bool IsClosing() const { return isClosing; }
+
+	void NotifyImageClicked(const double& x, const double& y);
 
 private:
 	void CreateControls();
 	void SetProperties();
+
+	bool isClosing;
+
+	PointPicker picker;
 
 	enum EventIDs
 	{
@@ -47,6 +57,7 @@ private:
 	void PointAreYAxisClicked(wxCommandEvent& event);
 	void PointAreCurveDataClicked(wxCommandEvent& event);
 	void GridClicked(wxGridEvent& event);
+	void OnClose(wxCloseEvent& event);
 
 	wxStaticBoxSizer *plotDataGroup;
 	wxGrid* grid;

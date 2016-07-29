@@ -8,6 +8,7 @@
 
 // Local headers
 #include "controlsFrame.h"
+#include "imageFrame.h"
 #include "imageDropTarget.h"
 #include "pointPickerApp.h"
 
@@ -31,25 +32,24 @@
 ControlsFrame::ControlsFrame() : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaultPosition,
 								 wxDefaultSize, wxDEFAULT_FRAME_STYLE)
 {
-	imageFrame = NULL;
+	isClosing = false;
 
 	CreateControls();
 	SetProperties();
 
-	// TODO:  Create image frame
-
-	wxInitAllImageHandlers();
+	imageFrame = new ImageFrame(*this);
+	imageFrame->Show();
 }
 
 //==========================================================================
 // Class:			ControlsFrame
-// Function:		~ControlsFrame
+// Function:		OnClose
 //
 // Description:		Denstructor for ControlsFrame class.  Frees memory and
 //					releases GUI object managers.
 //
 // Input Arguments:
-//		None
+//		event	= wxCloseEvent&
 //
 // Output Arguments:
 //		None
@@ -58,12 +58,13 @@ ControlsFrame::ControlsFrame() : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaul
 //		None
 //
 //==========================================================================
-ControlsFrame::~ControlsFrame()
+void ControlsFrame::OnClose(wxCloseEvent& event)
 {
+	isClosing = true;
 	if (imageFrame)
-	{
-		// TODO:  Implement
-	}
+		imageFrame->Close(true);
+
+	event.Skip();
 }
 
 //==========================================================================
@@ -186,6 +187,7 @@ void ControlsFrame::SetProperties()
 BEGIN_EVENT_TABLE(ControlsFrame, wxFrame)
 	EVT_TOGGLEBUTTON(idCopyToClipboard, ControlsFrame::CopyToClipboardToggle)
 	EVT_TOGGLEBUTTON(idExtractPlotData, ControlsFrame::ExtractPlotDataToggle)
+	EVT_CLOSE(ControlsFrame::OnClose)
 END_EVENT_TABLE();
 
 //==========================================================================
@@ -231,32 +233,151 @@ void ControlsFrame::ExtractPlotDataToggle(wxCommandEvent& event)
 	plotDataGroup->GetStaticBox()->Enable(event.IsChecked());
 }
 
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		ResetXAxisClicked
+//
+// Description:		Handles button click events.
+//
+// Input Arguments:
+//		event	= wxCommandEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
 void ControlsFrame::ResetXAxisClicked(wxCommandEvent& WXUNUSED(event))
 {
+	// TODO:  Implement
 }
 
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		ResetYAxisClicked
+//
+// Description:		Handles button click events.
+//
+// Input Arguments:
+//		event	= wxCommandEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
 void ControlsFrame::ResetYAxisClicked(wxCommandEvent& WXUNUSED(event))
 {
+	// TODO:  Implement
 }
 
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		SavePlotDataClicked
+//
+// Description:		Handles button click events.
+//
+// Input Arguments:
+//		event	= wxCommandEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
 void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 {
+	// TODO:  Implement
 }
 
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		PointAreXAxisClicked
+//
+// Description:		Handles radio button click events.
+//
+// Input Arguments:
+//		event	= wxCommandEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
 void ControlsFrame::PointAreXAxisClicked(wxCommandEvent& WXUNUSED(event))
 {
+	// TODO:  Implement
 }
 
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		PointAreYAxisClicked
+//
+// Description:		Handles radio button click events.
+//
+// Input Arguments:
+//		event	= wxCommandEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
 void ControlsFrame::PointAreYAxisClicked(wxCommandEvent& WXUNUSED(event))
 {
+	// TODO:  Implement
 }
 
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		PointAreCurveDataClicked
+//
+// Description:		Handles radio button click events.
+//
+// Input Arguments:
+//		event	= wxCommandEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
 void ControlsFrame::PointAreCurveDataClicked(wxCommandEvent& WXUNUSED(event))
 {
+	// TODO:  Implement
 }
 
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		GridClicked
+//
+// Description:		Handles grid click events.
+//
+// Input Arguments:
+//		event	= wxGridEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
 void ControlsFrame::GridClicked(wxGridEvent& event)
 {
+	// TODO:  Implement
 }
 
 //==========================================================================
@@ -283,5 +404,29 @@ bool ControlsFrame::LoadFiles(const wxArrayString &fileList)
 	/*wxImage newImage(fileList[0]);
 	image->SetBitmap(newImage);
 	image->SetSize(newImage.GetSize());*/
+	// TODO:  Implement
 	return true;
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		NotifyImageClicked
+//
+// Description:		Handles events passed from external objects notifying
+//					us of a click event on an image.
+//
+// Input Arguments:
+//		x	= const double&
+//		y	= const double&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::NotifyImageClicked(const double& x, const double& y)
+{
+	// TODO:  Implement
 }
