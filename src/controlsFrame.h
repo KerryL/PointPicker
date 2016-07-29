@@ -24,7 +24,7 @@ public:
 	bool LoadFiles(const wxArrayString &fileList);
 	inline bool IsClosing() const { return isClosing; }
 
-	void NotifyImageClicked(const double& x, const double& y);
+	inline PointPicker& GetPicker() { return picker; }
 
 private:
 	void CreateControls();

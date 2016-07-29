@@ -39,6 +39,8 @@ ControlsFrame::ControlsFrame() : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaul
 
 	imageFrame = new ImageFrame(*this);
 	imageFrame->Show();
+
+	wxInitAllImageHandlers();
 }
 
 //==========================================================================
@@ -401,32 +403,8 @@ bool ControlsFrame::LoadFiles(const wxArrayString &fileList)
 	if (fileList.Count() == 0)
 		return false;
 
-	/*wxImage newImage(fileList[0]);
-	image->SetBitmap(newImage);
-	image->SetSize(newImage.GetSize());*/
-	// TODO:  Implement
-	return true;
-}
+	wxImage newImage(fileList[0]);
+	imageFrame->SetImage(newImage);
 
-//==========================================================================
-// Class:			ControlsFrame
-// Function:		NotifyImageClicked
-//
-// Description:		Handles events passed from external objects notifying
-//					us of a click event on an image.
-//
-// Input Arguments:
-//		x	= const double&
-//		y	= const double&
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		None
-//
-//==========================================================================
-void ControlsFrame::NotifyImageClicked(const double& x, const double& y)
-{
-	// TODO:  Implement
+	return true;
 }

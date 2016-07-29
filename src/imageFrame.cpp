@@ -6,6 +6,8 @@
 // Local headers
 #include "imageFrame.h"
 #include "controlsFrame.h"
+#include "imageObject.h"
+#include "imageDropTarget.h"
 
 //==========================================================================
 // Class:			ImageFrame
@@ -29,7 +31,6 @@ ImageFrame::ImageFrame(ControlsFrame& controlsFrame) : wxFrame(NULL, wxID_ANY, w
 {
 	CreateControls();
 	SetProperties();
-	wxInitAllImageHandlers();
 }
 
 //==========================================================================
@@ -50,16 +51,17 @@ ImageFrame::ImageFrame(ControlsFrame& controlsFrame) : wxFrame(NULL, wxID_ANY, w
 //==========================================================================
 BEGIN_EVENT_TABLE(ImageFrame, wxFrame)
 	EVT_CLOSE(ImageFrame::OnClose)
+	EVT_SIZE(ImageFrame::OnResize)
 END_EVENT_TABLE();
 
 //==========================================================================
 // Class:			ImageFrame
-// Function:		CreateControls
+// Function:		SetImage
 //
-// Description:		Creates controls for ImageFrame.
+// Description:		Sets a new image to be displayed.
 //
 // Input Arguments:
-//		None
+//		i	= wxImage&
 //
 // Output Arguments:
 //		None
@@ -68,8 +70,9 @@ END_EVENT_TABLE();
 //		None
 //
 //==========================================================================
-void ImageFrame::CreateControls()
+void ImageFrame::SetImage(wxImage &i)
 {
+	image->SetBitmap(i);
 }
 
 //==========================================================================
@@ -90,6 +93,9 @@ void ImageFrame::CreateControls()
 //==========================================================================
 void ImageFrame::SetProperties()
 {
+	SetTitle(_T("Source Image"));
+
+	SetDropTarget(dynamic_cast<wxDropTarget*>(new ImageDropTarget(controlsFrame)));
 }
 
 //==========================================================================
@@ -116,4 +122,53 @@ void ImageFrame::OnClose(wxCloseEvent& event)
 
 	if (!controlsFrame.Close())
 		event.Veto();
+}
+
+//==========================================================================
+// Class:			ImageFrame
+// Function:		OnResize
+//
+// Description:		Handles window resize events.
+//
+// Input Arguments:
+//		event	= wxCommandEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ImageFrame::OnResize(wxSizeEvent& WXUNUSED(event))
+{
+	image->HandleSizeChange();
+}
+
+//==========================================================================
+// Class:			ImageFrame
+// Function:		CreateControls
+//
+// Description:		Creates image controls.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ImageFrame::CreateControls()
+{
+	wxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+
+	wxImage dummyImage(320, 200);
+	image = new ImageObject(controlsFrame.GetPicker(), *this, wxID_ANY,
+		dummyImage, wxDefaultPosition, wxDefaultSize);
+	mainSizer->Add(image, 1, wxGROW);
+
+	SetSizerAndFit(mainSizer);
 }

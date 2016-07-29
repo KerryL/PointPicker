@@ -9,16 +9,29 @@
 // wxWidgets headers
 #include <wx/statbmp.h>
 
+// Local forward declarations
+class PointPicker;
+
 class ImageObject : public wxStaticBitmap
 {
 public:
-	ImageObject(wxWindow &parent, wxWindowID id, const wxBitmap &image,
+	ImageObject(PointPicker& picker, wxWindow &parent, wxWindowID id, const wxBitmap &image,
 		const wxPoint &pos, const wxSize &size);
 
-	virtual ~ImageObject() {}
+	virtual ~ImageObject();
+
+	virtual void SetBitmap(const wxBitmap& bitmap);
+	void HandleSizeChange();
 
 private:
+	PointPicker &picker;
+	wxBitmap originalImage;
+
 	void OnClick(wxMouseEvent &event);
+	void OnDrag(wxMouseEvent& event);
+	void OnZoom(wxMouseEvent& event);
+
+	bool mouseMoved;
 
 	DECLARE_EVENT_TABLE();
 };

@@ -17,11 +17,14 @@ class ImageFrame : public wxFrame
 public:
 	ImageFrame(ControlsFrame& controlsFrame);
 
+	void SetImage(wxImage &image);
+
 private:
-	void CreateControls();
 	void SetProperties();
+	void CreateControls();
 
 	void OnClose(wxCloseEvent& event);
+	void OnResize(wxSizeEvent &event);
 
 	ControlsFrame& controlsFrame;
 

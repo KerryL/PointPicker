@@ -5,6 +5,7 @@
 
 // Local headers
 #include "imageObject.h"
+#include "pointPicker.h"
 
 //==========================================================================
 // Class:			ImageObject
@@ -13,6 +14,7 @@
 // Description:		Constructor for ImageObject class.
 //
 // Input Arguments:
+//		picker	= PointPicker&
 //		parent	= wxWindow&
 //		id		= wxWindowID
 //		image	= const wxBitmap&
@@ -26,10 +28,34 @@
 //		None
 //
 //==========================================================================
-ImageObject::ImageObject(wxWindow &parent, wxWindowID id, const wxBitmap &label,
-	const wxPoint &pos, const wxSize &size)
-	: wxStaticBitmap(&parent, id, label, pos, size)
+ImageObject::ImageObject(PointPicker& picker, wxWindow &parent, wxWindowID id,
+	const wxBitmap &image, const wxPoint &pos, const wxSize &size)
+	: wxStaticBitmap(&parent, id, image, pos, size), picker(picker)
 {
+	picker.SetImageObject(this);
+	mouseMoved = false;
+	originalImage = image;
+}
+
+//==========================================================================
+// Class:			ImageObject
+// Function:		~ImageObject
+//
+// Description:		Destructor for ImageObject class.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+ImageObject::~ImageObject()
+{
+	picker.SetImageObject(NULL);
 }
 
 //==========================================================================
@@ -50,13 +76,15 @@ ImageObject::ImageObject(wxWindow &parent, wxWindowID id, const wxBitmap &label,
 //==========================================================================
 BEGIN_EVENT_TABLE(ImageObject, wxStaticBitmap)
 	EVT_LEFT_UP(ImageObject::OnClick)
+	EVT_MOTION(ImageObject::OnDrag)
+	EVT_MOUSEWHEEL(ImageObject::OnZoom)
 END_EVENT_TABLE();
 
 //==========================================================================
 // Class:			MainFrame
 // Function:		OnClick
 //
-// Description:		Handles click event.
+// Description:		Handles click events.
 //
 // Input Arguments:
 //		event	= wxMouseEvent&
@@ -70,5 +98,108 @@ END_EVENT_TABLE();
 //==========================================================================
 void ImageObject::OnClick(wxMouseEvent &event)
 {
-	// TODO:  Implement
+	if (mouseMoved)
+	{
+		mouseMoved = false;
+		return;
+	}
+
+	picker.AddPoint(event.GetX(), event.GetY(),
+		(double)originalImage.GetWidth() / GetBitmap().GetWidth(),
+		(double)originalImage.GetHeight() / GetBitmap().GetHeight(), 0.0, 0.0);
+}
+
+//==========================================================================
+// Class:			MainFrame
+// Function:		OnDrag
+//
+// Description:		Handles drag events.
+//
+// Input Arguments:
+//		event	= wxMouseEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ImageObject::OnDrag(wxMouseEvent& event)
+{
+	if (!event.LeftDown())
+		return;
+
+	mouseMoved = true;
+}
+
+//==========================================================================
+// Class:			MainFrame
+// Function:		OnZoom
+//
+// Description:		Handles mouse wheel event.
+//
+// Input Arguments:
+//		event	= wxMouseEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ImageObject::OnZoom(wxMouseEvent& event)
+{
+	/*if (event.GetWheelRotation() > 0)
+	{
+	}
+	else
+	{
+	}*/
+}
+
+//==========================================================================
+// Class:			MainFrame
+// Function:		HandleSizeChange
+//
+// Description:		Handles size changes.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ImageObject::HandleSizeChange()
+{
+	wxStaticBitmap::SetBitmap(originalImage.ConvertToImage().Scale(
+		GetParent()->GetClientSize().GetWidth(), GetParent()->GetClientSize().GetHeight()));
+}
+
+//==========================================================================
+// Class:			MainFrame
+// Function:		HandleSizeChange
+//
+// Description:		Handles size changes.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ImageObject::SetBitmap(const wxBitmap& bitmap)
+{
+	SetImage(&bitmap);
+	originalImage = bitmap;
+	HandleSizeChange();
 }
