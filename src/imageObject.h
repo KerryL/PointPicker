@@ -33,7 +33,7 @@ private:
 
 	bool mouseMoved;
 
-	DECLARE_EVENT_TABLE();
+	DECLARE_EVENT_TABLE()
 };
 
 #endif// IMAGE_OBJECT_H_

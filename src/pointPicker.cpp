@@ -12,7 +12,7 @@
 #include <wx/textdlg.h>
 
 // Eigen headers
-#include <eigen/eigen>
+#include <Eigen/Eigen>
 
 // Local headers
 #include "pointPicker.h"

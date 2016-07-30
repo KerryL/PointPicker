@@ -65,7 +65,7 @@ private:
 
 	ImageFrame* imageFrame;
 
-	DECLARE_EVENT_TABLE();
+	DECLARE_EVENT_TABLE()
 };
 
 #endif// CONTROLS_FRAME_H_

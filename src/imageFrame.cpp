@@ -52,7 +52,7 @@ ImageFrame::ImageFrame(ControlsFrame& controlsFrame) : wxFrame(NULL, wxID_ANY, w
 BEGIN_EVENT_TABLE(ImageFrame, wxFrame)
 	EVT_CLOSE(ImageFrame::OnClose)
 	EVT_SIZE(ImageFrame::OnResize)
-END_EVENT_TABLE();
+END_EVENT_TABLE()
 
 //==========================================================================
 // Class:			ImageFrame

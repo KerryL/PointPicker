@@ -8,7 +8,7 @@
 #include "controlsFrame.h"
 
 // Implement the application (have wxWidgets set up the appropriate entry points, etc.)
-IMPLEMENT_APP(PointPickerApp);
+IMPLEMENT_APP(PointPickerApp)
 
 //==========================================================================
 // Class:			PointPickerApp

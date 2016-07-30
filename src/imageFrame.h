@@ -30,7 +30,7 @@ private:
 
 	ImageObject *image;
 
-	DECLARE_EVENT_TABLE();
+	DECLARE_EVENT_TABLE()
 };
 
 #endif// IMAGE_FRAME_H_

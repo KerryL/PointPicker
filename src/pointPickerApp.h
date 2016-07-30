@@ -21,12 +21,14 @@ public:
 	static const wxString title;// As displayed
 	static const wxString name;// Internal
 	static const wxString creator;
+	static const wxString versionString;
+	static const wxString gitHash;
 
 private:
 	ControlsFrame *mainFrame;
 };
 
 // Declare the application object (have wxWidgets create the wxGetApp() function)
-DECLARE_APP(PointPickerApp);
+DECLARE_APP(PointPickerApp)
 
 #endif// POINT_PICKER_APP_H_

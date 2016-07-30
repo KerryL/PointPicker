@@ -162,7 +162,7 @@ void ControlsFrame::CreateControls()
 
 	// Set defaults
 	plotDataGroup->GetStaticBox()->Enable(false);
-	static_cast<wxRadioButton*>(this->FindItem(idPointsAreXAxis))->SetValue(true);
+	static_cast<wxRadioButton*>(this->FindWindow(idPointsAreXAxis))->SetValue(true);
 
 	SetSizerAndFit(topSizer);
 }
@@ -220,7 +220,7 @@ BEGIN_EVENT_TABLE(ControlsFrame, wxFrame)
 	EVT_RADIOBUTTON(idPointsAreCurveData, ControlsFrame::PointAreCurveDataClicked)
 	EVT_CLOSE(ControlsFrame::OnClose)
 	EVT_ACTIVATE(ControlsFrame::OnActivate)
-END_EVENT_TABLE();
+END_EVENT_TABLE()
 
 //==========================================================================
 // Class:			ControlsFrame

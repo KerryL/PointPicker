@@ -37,7 +37,7 @@ ImageObject::ImageObject(PointPicker& picker, wxWindow &parent, wxWindowID id,
 }
 
 //==========================================================================
-// Class:			ImageObject
+// Class:			ImageObjet
 // Function:		Event Table
 //
 // Description:		Links GUI events with event handler functions.
@@ -56,10 +56,10 @@ BEGIN_EVENT_TABLE(ImageObject, wxStaticBitmap)
 	EVT_LEFT_UP(ImageObject::OnClick)
 	EVT_MOTION(ImageObject::OnDrag)
 	EVT_MOUSEWHEEL(ImageObject::OnZoom)
-END_EVENT_TABLE();
+END_EVENT_TABLE()
 
 //==========================================================================
-// Class:			MainFrame
+// Class:			ImageObject
 // Function:		OnClick
 //
 // Description:		Handles click events.
@@ -88,7 +88,7 @@ void ImageObject::OnClick(wxMouseEvent &event)
 }
 
 //==========================================================================
-// Class:			MainFrame
+// Class:			ImageObject
 // Function:		OnDrag
 //
 // Description:		Handles drag events.
@@ -112,7 +112,7 @@ void ImageObject::OnDrag(wxMouseEvent& event)
 }
 
 //==========================================================================
-// Class:			MainFrame
+// Class:			ImageObject
 // Function:		OnZoom
 //
 // Description:		Handles mouse wheel event.
@@ -138,7 +138,7 @@ void ImageObject::OnZoom(wxMouseEvent& WXUNUSED(event))
 }
 
 //==========================================================================
-// Class:			MainFrame
+// Class:			ImageObject
 // Function:		HandleSizeChange
 //
 // Description:		Handles size changes.
@@ -160,7 +160,7 @@ void ImageObject::HandleSizeChange()
 }
 
 //==========================================================================
-// Class:			MainFrame
+// Class:			ImageObject
 // Function:		HandleSizeChange
 //
 // Description:		Handles size changes.
@@ -177,7 +177,6 @@ void ImageObject::HandleSizeChange()
 //==========================================================================
 void ImageObject::SetBitmap(const wxBitmap& bitmap)
 {
-	SetImage(&bitmap);
 	originalImage = bitmap;
 	HandleSizeChange();
 }
