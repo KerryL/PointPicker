@@ -9,6 +9,12 @@
 // Standard C++ headers
 #include <vector>
 
+// Eigen headers
+#include <Eigen/Eigen>
+
+// wxWidgets headers
+#include <wx/wx.h>
+
 class PointPicker
 {
 public:
@@ -65,6 +71,8 @@ public:
 
 	std::vector<std::vector<PointPicker::Point> > GetCurveData() const;
 
+	wxString GetErrorString() const { return errorString; }
+
 private:
 	static double ScaleOrdinate(const double& value,
 		const double& scale, const double& offset);
@@ -73,12 +81,27 @@ private:
 	DataExtractionMode dataMode;
 	unsigned int curveIndex;
 
+	mutable wxString errorString;
+
 	std::vector<Point> xAxisPoints;
 	std::vector<Point> yAxisPoints;
 	std::vector<std::vector<Point> > curvePoints;
 
 	void HandleClipboardMode(const double& x, const double& y) const;
 	void HandleDataMode(const double& x, const double& y);
+
+	struct AxisInfo
+	{
+		double angle;// [rad from horizontal]
+		Point intercept;
+		bool isLogarithmic;
+		double scale;
+		Point zero;
+	};
+
+	static bool GetBestFitAxis(const std::vector<Point>& points, AxisInfo& info);
+	static void GetBestAxisScale(const std::vector<Point>& points, AxisInfo& info);
+	std::vector<std::vector<Point> > ScaleCurvePoints(const AxisInfo& xInfo, const AxisInfo& yInfo) const;
 };
 
 #endif// POINT_PICKER_H_

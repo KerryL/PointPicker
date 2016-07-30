@@ -6,13 +6,14 @@
 // Standard C++ headers
 #include <cstdlib>
 #include <cassert>
+#include <cmath>
 
 // wxWidgets headers
 #include <wx/clipbrd.h>
 #include <wx/textdlg.h>
 
 // Eigen headers
-#include <Eigen/Eigen>
+#include <Eigen/Dense>
 
 // Local headers
 #include "pointPicker.h"
@@ -286,7 +287,144 @@ void PointPicker::Reset()
 //==========================================================================
 std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 {
-	// TODO:  Implement
-	std::vector<std::vector<Point> > curves;
-	return curves;
+	errorString.clear();
+
+	AxisInfo xInfo, yInfo;
+	if (!GetBestFitAxis(xAxisPoints, xInfo))
+		errorString += _T("Not enough unique points to estimate X-axis");
+	if (!GetBestFitAxis(yAxisPoints, yInfo))
+		errorString += _T("Not enough unique points to estimate Y-axis");
+
+	if (!errorString.empty())
+		return std::vector<std::vector<Point> >(0);
+
+	GetBestAxisScale(xAxisPoints, xInfo);
+	GetBestAxisScale(yAxisPoints, yInfo);
+
+	return ScaleCurvePoints(xInfo, yInfo);
 }
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		GetBestFitAxis
+//
+// Description:		Computes best fit line for specified axis data.
+//
+// Input Arguments:
+//		points	= const std::vector<Point>&
+//
+// Output Arguments:
+//		info	= AxisInfo&
+//
+// Return Value:
+//		bool
+//
+//==========================================================================
+bool PointPicker::GetBestFitAxis(const std::vector<Point>& points, AxisInfo& info)
+{
+	if (points.size() < 2)
+		return false;
+
+	Eigen::MatrixXd x(points.size(), 2);
+	Eigen::VectorXd y(points.size());
+
+	// To ensure the matrices we are using have good condition numbers, find the
+	// ordinate with the largest range (i.e. are we solving for x-axis or y-axis?)
+	double xMin(points[0].x);
+	double xMax(points[0].x);
+	double yMin(points[0].y);
+	double yMax(points[0].y);
+	unsigned int i;
+	for (i = 1; i < points.size(); i++)
+	{
+		if (points[i].x < xMin)
+			xMin = points[i].x;
+		else if (points[i].x > xMax)
+			xMax = points[i].x;
+
+		if (points[i].y < yMin)
+			yMin = points[i].y;
+		else if (points[i].y > yMax)
+			yMax = points[i].y;
+	}
+
+	bool invertSlope = fabs(xMax - xMin) < fabs(yMax - yMin);
+
+	for (i = 0; i < points.size(); i++)
+	{
+		if (invertSlope)
+		{
+			x(i,0) = points[i].y;
+			y(i) = points[i].x;
+		}
+		else
+		{
+			x(i,0) = points[i].x;
+			y(i) = points[i].y;
+		}
+		x(i,1) = 1.0;
+	}
+
+	Eigen::VectorXd coefficients(x.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(y));
+	if (invertSlope)
+	{
+		info.angle = atan(1.0 / coefficients(0));
+		info.intercept.x = coefficients(1);
+		info.intercept.y = 0.0;
+	}
+	else
+	{
+		info.angle = atan(coefficients(0));
+		info.intercept.x = 0.0;
+		info.intercept.y = coefficients(1);
+	}
+
+	return true;
+}
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		GetBestAxisScale
+//
+// Description:		Finds axis scaling based on best fit line and user-specified
+//					tick values.
+//
+// Input Arguments:
+//		points	= const std::vector<Point>&
+//
+// Output Arguments:
+//		info	= AxisInfo&
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& info)
+{
+	// TODO:  Implement
+}
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		GetCurveData
+//
+// Description:		Returns processed curve data.
+//
+// Input Arguments:
+//		points	= const std::vector<Point>&
+//
+// Output Arguments:
+//		info	= AxisInfo&
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+std::vector<std::vector<PointPicker::Point> > PointPicker::ScaleCurvePoints(
+	const AxisInfo& xInfo, const AxisInfo& yInfo) const
+{
+	// TODO:  Implement
+	std::vector<std::vector<Point> > scaledCurves;
+	return scaledCurves;
+}
+
