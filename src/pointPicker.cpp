@@ -285,21 +285,31 @@ void PointPicker::Reset()
 //		std::vector<std::vector<PointPicker::Point> >
 //
 //==========================================================================
+#include <iostream>// TODO:  Remove
 std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 {
 	errorString.clear();
 
 	AxisInfo xInfo, yInfo;
 	if (!GetBestFitAxis(xAxisPoints, xInfo))
-		errorString += _T("Not enough unique points to estimate X-axis");
+		errorString += _T("\nNot enough unique points to estimate X-axis");
 	if (!GetBestFitAxis(yAxisPoints, yInfo))
-		errorString += _T("Not enough unique points to estimate Y-axis");
+		errorString += _T("\nNot enough unique points to estimate Y-axis");
 
 	if (!errorString.empty())
 		return std::vector<std::vector<Point> >(0);
 
+	// TODO:  Warning if axes are not perpendicular?
+
 	GetBestAxisScale(xAxisPoints, xInfo);
 	GetBestAxisScale(yAxisPoints, yInfo);
+
+std::cout << "xScale = " << xInfo.scale << " px/unit" << std::endl;
+std::cout << "yScale = " << yInfo.scale << " px/unit" << std::endl;
+std::cout << "xZero = " << xInfo.zero << std::endl;
+std::cout << "yZero = " << yInfo.zero << std::endl;
+std::cout << "x is log = " << (int)xInfo.isLogarithmic << std::endl;
+std::cout << "y is log = " << (int)yInfo.isLogarithmic << std::endl;
 
 	return ScaleCurvePoints(xInfo, yInfo);
 }
@@ -401,7 +411,94 @@ bool PointPicker::GetBestFitAxis(const std::vector<Point>& points, AxisInfo& inf
 //==========================================================================
 void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& info)
 {
-	// TODO:  Implement
+	// Find points on best-fit line closest to user-input points
+	Eigen::MatrixXd linearModel(points.size(), 2);
+	Eigen::MatrixXd logarithmicModel(points.size(), 2);
+	Eigen::VectorXd values(points.size());
+
+	Point nearest;
+	unsigned int i;
+	for (i = 0; i < points.size(); i++)
+	{
+		nearest = GetNearestPoint(points[i], info);
+		if (info.intercept.x == 0.0)
+		{
+			linearModel(i, 0) = nearest.x;
+			logarithmicModel(i, 0) = pow(10.0, nearest.x);
+		}
+		else
+		{
+			linearModel(i, 0) = nearest.y;
+			logarithmicModel(i, 0) = pow(10.0, nearest.y);
+		}
+
+		linearModel(i, 1) = 1.0;
+		values(i) = points[i].aux;
+	}
+
+	// Perform regressions for both linear and logarithmic models
+	Eigen::VectorXd linearCoefficients(linearModel.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(values));
+	Eigen::VectorXd logarithmicCoefficients(logarithmicModel.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(values));
+
+	// Choose result based on lowest error
+	Eigen::VectorXd linearError(linearModel * linearCoefficients - values);
+	Eigen::VectorXd logarithmicError(logarithmicModel * logarithmicCoefficients - values);
+	if (linearError.dot(linearError) < logarithmicError.dot(logarithmicError))
+	{
+		info.isLogarithmic = false;
+		info.scale = linearCoefficients(0);
+		info.zero = linearCoefficients(1);
+	}
+	else
+	{
+		info.isLogarithmic = true;
+		info.scale = logarithmicCoefficients(0);
+		info.zero = logarithmicCoefficients(1);
+	}
+}
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		GetNearestPoint
+//
+// Description:		Returns the point on the line closest to the specified point.
+//
+// Input Arguments:
+//		point	= const Point&
+//		info	= AxisInfo&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+PointPicker::Point PointPicker::GetNearestPoint(const Point& point, const AxisInfo& info)
+{
+	Point p;
+
+	// TODO:  Improve this.  Either find an algorithm that is numerically superior, or clean this up to make it easier to follow
+
+	// Points point and p2 are on the line perpendicular to the axis
+	// Point l is the axis (as is info.intercept)
+	Point p2, l;
+	p2.x = point.x + sin(info.angle);
+	p2.y = point.y + cos(info.angle);
+	l.x = info.intercept.x + cos(info.angle);
+	l.y = info.intercept.y + sin(info.angle);
+	p.x = ((point.x * p2.y - point.y * p2.x) * (info.intercept.x - l.x)
+		- (point.x - p2.x) * (info.intercept.x * l.y - info.intercept.y * l.x))
+		/ ((point.x - p2.y) * (info.intercept.y - l.y)
+		- (point.y - p2.y) * (info.intercept.x - l.x));
+	p.y = ((point.x * p2.y - point.y * p2.x) * (info.intercept.y - l.y)
+		- (point.y - p2.y) * (info.intercept.x * l.y - info.intercept.y * l.x))
+		/ ((point.x - p2.y) * (info.intercept.y - l.y)
+		- (point.y - p2.y) * (info.intercept.x - l.x));
+
+std::cout << "(" << point.x << ", " << point.y << ") -> (" << p.x << ", " << p.y << ")" << std::endl;
+
+	return p;
 }
 
 //==========================================================================
@@ -423,8 +520,16 @@ void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& i
 std::vector<std::vector<PointPicker::Point> > PointPicker::ScaleCurvePoints(
 	const AxisInfo& xInfo, const AxisInfo& yInfo) const
 {
-	// TODO:  Implement
-	std::vector<std::vector<Point> > scaledCurves;
+	std::vector<std::vector<Point> > scaledCurves(curvePoints);
+	unsigned int i, j;
+	for (i = 0; i < scaledCurves.size(); i++)
+	{
+		for (j = 0; j < scaledCurves[i].size(); j++)
+		{
+			// TODO:  Implement
+		}
+	}
+
 	return scaledCurves;
 }
 

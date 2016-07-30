@@ -9,9 +9,6 @@
 // Standard C++ headers
 #include <vector>
 
-// Eigen headers
-#include <Eigen/Eigen>
-
 // wxWidgets headers
 #include <wx/wx.h>
 
@@ -96,11 +93,12 @@ private:
 		Point intercept;
 		bool isLogarithmic;
 		double scale;
-		Point zero;
+		double zero;
 	};
 
 	static bool GetBestFitAxis(const std::vector<Point>& points, AxisInfo& info);
 	static void GetBestAxisScale(const std::vector<Point>& points, AxisInfo& info);
+	static Point GetNearestPoint(const Point& point, const AxisInfo& info);
 	std::vector<std::vector<Point> > ScaleCurvePoints(const AxisInfo& xInfo, const AxisInfo& yInfo) const;
 };
 

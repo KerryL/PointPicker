@@ -342,8 +342,15 @@ void ControlsFrame::ResetYAxisClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 {
+	std::vector<std::vector<PointPicker::Point> > data(picker.GetCurveData());
+	if (data.size() == 0 && !picker.GetErrorString().empty())
+	{
+		wxMessageBox(_T("The following errors occurred while estimating curve data:\n")
+			+ picker.GetErrorString(), _T("Error"));
+		return;
+	}
+
 	// TODO:  Implement
-	//Use picker.GetCurveData();
 }
 
 //==========================================================================
