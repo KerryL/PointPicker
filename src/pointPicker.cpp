@@ -102,6 +102,8 @@ void PointPicker::HandleClipboardMode(const double& x, const double& y) const
 			wxTheClipboard->SetData(new wxTextDataObject(wxString::Format(_T("%f\t%f"), x, y)));
 		else
 			assert(false);
+
+		wxTheClipboard->Close();
 	}
 }
 
@@ -304,8 +306,8 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 	GetBestAxisScale(xAxisPoints, xInfo);
 	GetBestAxisScale(yAxisPoints, yInfo);
 
-std::cout << "xScale = " << xInfo.scale << " px/unit" << std::endl;
-std::cout << "yScale = " << yInfo.scale << " px/unit" << std::endl;
+std::cout << "xScale = " << xInfo.scale << " unit/px" << std::endl;
+std::cout << "yScale = " << yInfo.scale << " unit/px" << std::endl;
 std::cout << "xZero = " << xInfo.zero << std::endl;
 std::cout << "yZero = " << yInfo.zero << std::endl;
 std::cout << "x is log = " << (int)xInfo.isLogarithmic << std::endl;
@@ -416,24 +418,25 @@ void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& i
 	Eigen::MatrixXd logarithmicModel(points.size(), 2);
 	Eigen::VectorXd values(points.size());
 
+	Point reference(GetNearestPoint(points[0], info));
 	Point nearest;
+	const double dx(cos(info.angle));
+	const double dy(sin(info.angle));
+	double distance;
+	bool logIsOption(points[0].aux > 0.0);
 	unsigned int i;
-	for (i = 0; i < points.size(); i++)
+	for (i = 1; i < points.size(); i++)
 	{
 		nearest = GetNearestPoint(points[i], info);
-		if (info.intercept.x == 0.0)
-		{
-			linearModel(i, 0) = nearest.x;
-			logarithmicModel(i, 0) = pow(10.0, nearest.x);
-		}
-		else
-		{
-			linearModel(i, 0) = nearest.y;
-			logarithmicModel(i, 0) = pow(10.0, nearest.y);
-		}
+		distance = (nearest.x - reference.x) * dx + (nearest.y - reference.y) * dy;
+		linearModel(i, 0) = distance;
+		logarithmicModel(i, 0) = pow(10.0, distance);
 
 		linearModel(i, 1) = 1.0;
-		values(i) = points[i].aux;
+		logarithmicModel(i, 1) = 1.0;
+		values(i) = points[i].aux - points[0].aux;
+		if (points[i].aux <= 0.0)
+			logIsOption = false;
 	}
 
 	// Perform regressions for both linear and logarithmic models
@@ -443,7 +446,12 @@ void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& i
 	// Choose result based on lowest error
 	Eigen::VectorXd linearError(linearModel * linearCoefficients - values);
 	Eigen::VectorXd logarithmicError(logarithmicModel * logarithmicCoefficients - values);
-	if (linearError.dot(linearError) < logarithmicError.dot(logarithmicError))
+std::cout << "lin coef = " << linearCoefficients << std::endl;
+std::cout << "log coef = " << logarithmicCoefficients << std::endl;
+std::cout << "lin error = " << linearError.dot(linearError) << std::endl;
+std::cout << "log error = " << logarithmicError.dot(logarithmicError) << std::endl;
+// TODO:  Issue here is that log error is sometimes NaN, so this test returns false
+	if (linearError.dot(linearError) < logarithmicError.dot(logarithmicError) && logIsOption)
 	{
 		info.isLogarithmic = false;
 		info.scale = linearCoefficients(0);
@@ -476,7 +484,8 @@ void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& i
 //==========================================================================
 PointPicker::Point PointPicker::GetNearestPoint(const Point& point, const AxisInfo& info)
 {
-	Point p;
+	return point;
+/*	Point p;
 
 	// TODO:  Improve this.  Either find an algorithm that is numerically superior, or clean this up to make it easier to follow
 
@@ -496,9 +505,7 @@ PointPicker::Point PointPicker::GetNearestPoint(const Point& point, const AxisIn
 		/ ((point.x - p2.y) * (info.intercept.y - l.y)
 		- (point.y - p2.y) * (info.intercept.x - l.x));
 
-std::cout << "(" << point.x << ", " << point.y << ") -> (" << p.x << ", " << p.y << ")" << std::endl;
-
-	return p;
+	return p;*/
 }
 
 //==========================================================================

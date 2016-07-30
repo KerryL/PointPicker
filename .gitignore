@@ -10,9 +10,10 @@ ipch/
 *.opensdf
 *.bak
 
-# Ignore GKT directories
+# Ignore GKT directories and files
 bin/
 .obj/
+*.swp
 
 # Ignore automatically generated files
 gitHash.cpp

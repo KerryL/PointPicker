@@ -92,7 +92,7 @@ private:
 		double angle;// [rad from horizontal]
 		Point intercept;
 		bool isLogarithmic;
-		double scale;
+		double scale;// [units/px]
 		double zero;
 	};
 
