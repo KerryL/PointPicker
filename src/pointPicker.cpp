@@ -287,7 +287,6 @@ void PointPicker::Reset()
 //		std::vector<std::vector<PointPicker::Point> >
 //
 //==========================================================================
-#include <iostream>// TODO:  Remove
 std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 {
 	errorString.clear();
@@ -305,13 +304,6 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 
 	GetBestAxisScale(xAxisPoints, xInfo);
 	GetBestAxisScale(yAxisPoints, yInfo);
-
-std::cout << "xScale = " << xInfo.scale << " unit/px" << std::endl;
-std::cout << "yScale = " << yInfo.scale << " unit/px" << std::endl;
-std::cout << "xZero = " << xInfo.zero << std::endl;
-std::cout << "yZero = " << yInfo.zero << std::endl;
-std::cout << "x is log = " << (int)xInfo.isLogarithmic << std::endl;
-std::cout << "y is log = " << (int)yInfo.isLogarithmic << std::endl;
 
 	return ScaleCurvePoints(xInfo, yInfo);
 }
@@ -463,6 +455,13 @@ void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& i
 // Function:		GetNearestPoint
 //
 // Description:		Returns the point on the line closest to the specified point.
+//					Implementation is based on find the intersection of two
+//					parametric lines given a point on the line and a direction
+//					vector.  The point on the axis is the intercept point and
+//					the point on the perpendicular line is the argument "point."
+//					The slope of the second line is perpendicular to the axis
+//					(to ensure minimum distance from point to axis), so we only
+//					need one value of nx and ny to define both lines.
 //
 // Input Arguments:
 //		point	= const Point&
@@ -472,33 +471,32 @@ void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& i
 //		None
 //
 // Return Value:
-//		None
+//		Point
 //
 //==========================================================================
+#include <iostream>// TODO:  Remove
 PointPicker::Point PointPicker::GetNearestPoint(const Point& point, const AxisInfo& info)
 {
-	return point;
-/*	Point p;
+	Point p;
+	double t;
+	const double nx(cos(-info.angle));
+	const double ny(sin(-info.angle));
+	if (fabs(nx) > fabs(ny))// TODO:  This branch doesn't seem to work...
+		t = (info.intercept.y - point.y + ny / nx * (info.intercept.x - point.x))
+			/ (nx + ny * ny / nx);
+	else
+		t = (point.y - info.intercept.y - nx / ny * (point.x - info.intercept.x))
+			/ (ny + nx * nx / ny);
 
-	// TODO:  Improve this.  Either find an algorithm that is numerically superior, or clean this up to make it easier to follow
+	p.x = info.intercept.x + t * nx;
+	p.y = info.intercept.y + t * ny;
 
-	// Points point and p2 are on the line perpendicular to the axis
-	// Point l is the axis (as is info.intercept)
-	Point p2, l;
-	p2.x = point.x + sin(info.angle);
-	p2.y = point.y + cos(info.angle);
-	l.x = info.intercept.x + cos(info.angle);
-	l.y = info.intercept.y + sin(info.angle);
-	p.x = ((point.x * p2.y - point.y * p2.x) * (info.intercept.x - l.x)
-		- (point.x - p2.x) * (info.intercept.x * l.y - info.intercept.y * l.x))
-		/ ((point.x - p2.y) * (info.intercept.y - l.y)
-		- (point.y - p2.y) * (info.intercept.x - l.x));
-	p.y = ((point.x * p2.y - point.y * p2.x) * (info.intercept.y - l.y)
-		- (point.y - p2.y) * (info.intercept.x * l.y - info.intercept.y * l.x))
-		/ ((point.x - p2.y) * (info.intercept.y - l.y)
-		- (point.y - p2.y) * (info.intercept.x - l.x));
+std::cout << "nx = " << nx << std::endl;
+std::cout << "ny = " << ny << std::endl;
+std::cout << "intercept = (" << info.intercept.x << ", " << info.intercept.y << ")" << std::endl;
+std::cout << "(" << point.x << ", " << point.y << ") -> (" << p.x << ", " << p.y << ")" << std::endl;
 
-	return p;*/
+	return p;
 }
 
 //==========================================================================
