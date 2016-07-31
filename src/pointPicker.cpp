@@ -521,9 +521,26 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::ScaleCurvePoints(
 	unsigned int i, j;
 	for (i = 0; i < scaledCurves.size(); i++)
 	{
-		for (j = 0; j < scaledCurves[i].size(); j++)
+		if (xInfo.isLogarithmic)
 		{
-			// TODO:  Implement
+			for (j = 0; j < scaledCurves[i].size(); j++)
+				scaledCurves[i][j].x = 0.0;// TODO:  Impelement
+		}
+		else
+		{
+			for (j = 0; j < scaledCurves[i].size(); j++)
+				scaledCurves[i][j].x = scaledCurves[i][j].x * xInfo.scale + xInfo.zero;
+		}
+
+		if (yInfo.isLogarithmic)
+		{
+			for (j = 0; j < scaledCurves[i].size(); j++)
+				scaledCurves[i][j].y = 0.0;// TODO:  Implement
+		}
+		else
+		{
+			for (j = 0; j < scaledCurves[i].size(); j++)
+				scaledCurves[i][j].y = scaledCurves[i][j].y * yInfo.scale + yInfo.zero;
 		}
 	}
 

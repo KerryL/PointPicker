@@ -3,6 +3,9 @@
 // Auth:  K. Loux
 // Desc:  Frame object for point picker application where user can select options, etc.
 
+// Standard C++ headers
+#include <fstream>
+
 // wxWidgets headers
 #include <wx/tglbtn.h>
 
@@ -350,7 +353,40 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 		return;
 	}
 
-	// TODO:  Implement
+	// TODO:  Get file name from user
+	wxString fileName;
+	fileName = _T("test.csv");
+
+	std::ofstream file(fileName.c_str());
+	if (!file.is_open() || !file.good())
+	{
+		wxMessageBox(_T("Failed to open '") + fileName + _T("' for output."), _T("Error"));
+		return;
+	}
+
+	unsigned int i;
+	for (i = 0; i < data.size(); i++)
+		// TODO:  Include real descriptions?
+		file << "X(" << i << "),Y(" << i << "),";
+
+	unsigned int j(0);
+	bool finished(false);
+	while (!finished)
+	{
+		finished = true;
+		file << "\n";
+		for (i = 0; i < data.size(); i++)
+		{
+			if (j < data[i].size())
+			{
+				file << data[i][j].x << "," << data[i][j].y << ",";
+				finished = false;
+			}
+			else
+				file << "0,0,";// TODO:  Better to leave blank? 
+		}
+		j++;
+	}
 }
 
 //==========================================================================
