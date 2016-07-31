@@ -414,44 +414,37 @@ bool PointPicker::GetBestFitAxis(const std::vector<Point>& points, AxisInfo& inf
 void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& info)
 {
 	// Find points on best-fit line closest to user-input points
-	Eigen::MatrixXd linearModel(points.size(), 2);
-	Eigen::MatrixXd logarithmicModel(points.size(), 2);
-	Eigen::VectorXd values(points.size());
+	Eigen::MatrixXd model(points.size(), 2);
+	Eigen::VectorXd linearValues(points.size());
+	Eigen::VectorXd logarithmicValues(points.size());
 
-	Point reference(GetNearestPoint(points[0], info));
 	Point nearest;
 	const double dx(cos(info.angle));
 	const double dy(sin(info.angle));
 	double distance;
 	bool logIsOption(points[0].aux > 0.0);
 	unsigned int i;
-	for (i = 1; i < points.size(); i++)
+	for (i = 0; i < points.size(); i++)
 	{
 		nearest = GetNearestPoint(points[i], info);
-		distance = (nearest.x - reference.x) * dx + (nearest.y - reference.y) * dy;
-		linearModel(i, 0) = distance;
-		logarithmicModel(i, 0) = pow(10.0, distance);
+		distance = (nearest.x - info.intercept.x) * dx + (nearest.y - info.intercept.y) * dy;
+		model(i, 0) = distance;
 
-		linearModel(i, 1) = 1.0;
-		logarithmicModel(i, 1) = 1.0;
-		values(i) = points[i].aux - points[0].aux;
+		model(i, 1) = 1.0;
+		linearValues(i) = points[i].aux;
+		logarithmicValues(i) = log(points[i].aux);
 		if (points[i].aux <= 0.0)
 			logIsOption = false;
 	}
 
 	// Perform regressions for both linear and logarithmic models
-	Eigen::VectorXd linearCoefficients(linearModel.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(values));
-	Eigen::VectorXd logarithmicCoefficients(logarithmicModel.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(values));
+	Eigen::VectorXd linearCoefficients(model.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(linearValues));
+	Eigen::VectorXd logarithmicCoefficients(model.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(logarithmicValues));
 
 	// Choose result based on lowest error
-	Eigen::VectorXd linearError(linearModel * linearCoefficients - values);
-	Eigen::VectorXd logarithmicError(logarithmicModel * logarithmicCoefficients - values);
-std::cout << "lin coef = " << linearCoefficients << std::endl;
-std::cout << "log coef = " << logarithmicCoefficients << std::endl;
-std::cout << "lin error = " << linearError.dot(linearError) << std::endl;
-std::cout << "log error = " << logarithmicError.dot(logarithmicError) << std::endl;
-// TODO:  Issue here is that log error is sometimes NaN, so this test returns false
-	if (linearError.dot(linearError) < logarithmicError.dot(logarithmicError) && logIsOption)
+	Eigen::VectorXd linearError(model * linearCoefficients - linearValues);
+	Eigen::VectorXd logarithmicError(model * logarithmicCoefficients - logarithmicValues);
+	if (linearError.dot(linearError) < logarithmicError.dot(logarithmicError) || !logIsOption)
 	{
 		info.isLogarithmic = false;
 		info.scale = linearCoefficients(0);
