@@ -474,27 +474,26 @@ void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& i
 //		Point
 //
 //==========================================================================
-#include <iostream>// TODO:  Remove
 PointPicker::Point PointPicker::GetNearestPoint(const Point& point, const AxisInfo& info)
 {
 	Point p;
 	double t;
-	const double nx(cos(-info.angle));
-	const double ny(sin(-info.angle));
-	if (fabs(nx) > fabs(ny))// TODO:  This branch doesn't seem to work...
-		t = (info.intercept.y - point.y + ny / nx * (info.intercept.x - point.x))
+	const double nx(cos(info.angle));
+	const double ny(sin(info.angle));
+	if (fabs(nx) > fabs(ny))
+	{
+		t = (info.intercept.y - point.y - ny / nx * (info.intercept.x - point.x))
 			/ (nx + ny * ny / nx);
+		p.x = point.x - t * ny;
+		p.y = point.y + t * nx;
+	}
 	else
+	{
 		t = (point.y - info.intercept.y - nx / ny * (point.x - info.intercept.x))
 			/ (ny + nx * nx / ny);
-
-	p.x = info.intercept.x + t * nx;
-	p.y = info.intercept.y + t * ny;
-
-std::cout << "nx = " << nx << std::endl;
-std::cout << "ny = " << ny << std::endl;
-std::cout << "intercept = (" << info.intercept.x << ", " << info.intercept.y << ")" << std::endl;
-std::cout << "(" << point.x << ", " << point.y << ") -> (" << p.x << ", " << p.y << ")" << std::endl;
+		p.x = info.intercept.x + t * nx;
+		p.y = info.intercept.y + t * ny;
+	}
 
 	return p;
 }
