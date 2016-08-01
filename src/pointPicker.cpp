@@ -473,7 +473,7 @@ void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& i
 
 		model(i, 1) = 1.0;
 		linearValues(i) = points[i].aux;
-		logarithmicValues(i) = log(points[i].aux);
+		logarithmicValues(i) = log10(points[i].aux);
 		if (points[i].aux <= 0.0)
 			logIsOption = false;
 	}
