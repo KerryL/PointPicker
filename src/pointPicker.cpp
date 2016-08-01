@@ -554,7 +554,8 @@ PointPicker::Point PointPicker::GetNearestPoint(const Point& point, const AxisIn
 // Description:		Returns processed curve data.
 //
 // Input Arguments:
-//		points	= const std::vector<Point>&
+//		xInfo	= const AxisInfo&
+//		yInfo	= const AxisInfo&
 //
 // Output Arguments:
 //		None
