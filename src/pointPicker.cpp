@@ -298,12 +298,11 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 		errorString += _T("\nNot enough unique points to estimate X-axis");
 	if (!GetBestFitAxis(yAxisPoints, yInfo))
 		errorString += _T("\nNot enough unique points to estimate Y-axis");
+	if (fabs(xInfo.angle) - fabs(yInfo.angle) < 0.08)// Difference less than about 5 deg - this is prior to real numerical difficulties would begin
+		errorString += _T("\nX and Y axes are nearly parallel - cannot solve");
 
 	if (!errorString.empty())
 		return std::vector<std::vector<Point> >(0);
-
-	// TODO:  Warning if axes are not perpendicular?
-	// TODO:  Warning/error if axes are parallel?
 
 	GetBestAxisScale(xAxisPoints, xInfo);
 	GetBestAxisScale(yAxisPoints, yInfo);
@@ -346,12 +345,11 @@ PointPicker::Point PointPicker::ScaleSinglePoint(const double& rawX, const doubl
 		errorString += _T("\nNot enough unique points to estimate X-axis");
 	if (!GetBestFitAxis(yAxisPoints, yInfo))
 		errorString += _T("\nNot enough unique points to estimate Y-axis");
+	if (fabs(xInfo.angle) - fabs(yInfo.angle) < 0.08)// Difference less than about 5 deg - this is prior to real numerical difficulties would begin
+		errorString += _T("\nX and Y axes are nearly parallel - cannot solve");
 
 	if (!errorString.empty())
 		return Point(0.0, 0.0);
-
-	// TODO:  Warning if axes are not perpendicular?
-	// TODO:  Warning/error if axes are parallel?
 
 	GetBestAxisScale(xAxisPoints, xInfo);
 	GetBestAxisScale(yAxisPoints, yInfo);

@@ -74,7 +74,7 @@ ControlsFrame::ControlsFrame() : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaul
 //==========================================================================
 void ControlsFrame::OnActivate(wxActivateEvent& event)
 {
-	if (imageFrame && !imageFrame->HasFocus())// TODO:  Not quite right
+	if (imageFrame && !imageFrame->HasFocus())
 		imageFrame->Raise();
 
 	event.Skip();
