@@ -12,8 +12,6 @@ REM ECHO outputFile = %outputFile%
 ECHO gitTag = %gitTag%
 ECHO gitHash = %gitHash%
 
-EXIT 0
-
 @ECHO // File:  %outputFile%> %outputPath%%outputFile%
 @ECHO // Auth:  getGitHash.bat>> %outputPath%%outputFile%
 @ECHO // Desc:  Automatically generated file containing latest git hash.>> %outputPath%%outputFile%
