@@ -533,7 +533,7 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::ScaleCurvePoints(
 		if (xInfo.isLogarithmic)
 		{
 			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].x = 0.0;// TODO:  Impelement
+				scaledCurves[i][j].x = pow(10.0, scaledCurves[i][j].x * nxX + scaledCurves[i][j].y * nyX + xInfo.zero);
 		}
 		else
 		{
@@ -544,7 +544,7 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::ScaleCurvePoints(
 		if (yInfo.isLogarithmic)
 		{
 			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].y = 0.0;// TODO:  Implement
+				scaledCurves[i][j].y = pow(10.0, scaledCurves[i][j].x * nxY + scaledCurves[i][j].y * nyY + yInfo.zero);
 		}
 		else
 		{
