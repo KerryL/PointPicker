@@ -88,6 +88,7 @@ void ImageObject::OnClick(wxMouseEvent &event)
 	picker.AddPoint(event.GetX(), event.GetY(),
 		(double)originalImage.GetWidth() / GetBitmap().GetWidth(),
 		(double)originalImage.GetHeight() / GetBitmap().GetHeight(), 0.0, 0.0);
+	controlsFrame.AddNewPoint();
 }
 
 //==========================================================================

@@ -118,7 +118,7 @@ void ControlsFrame::CreateControls()
 	mainSizer->Add(plotDataGroup, 1, wxGROW);
 	wxFlexGridSizer *plotButtonSizer = new wxFlexGridSizer(3, 4, 5, 5);
 	plotButtonSizer->AddGrowableCol(2);
-	plotDataGroup->Add(plotButtonSizer, 1, wxGROW);
+	plotDataGroup->Add(plotButtonSizer, 0, wxGROW);
 
 	// Row 1
 	plotButtonSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreXAxis, _T("Points are on x-axis")));
@@ -135,18 +135,16 @@ void ControlsFrame::CreateControls()
 	// Row 3
 	plotButtonSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreCurveData, _T("Points are on curve")));
 
-	// TODO:  Don't create grid yet?  Do it dynamically as points are picked?
-	// TODO:  Sizers are not working as desired w.r.t. grid yet
-	//wxSizer *gridSizer = new wxBoxSizer(wxHORIZONTAL);
 	grid = new wxGrid(plotDataGroup->GetStaticBox(), wxID_ANY);
 	grid->BeginBatch();
-	grid->CreateGrid(5, 4, wxGrid::wxGridSelectColumns);
+	grid->CreateGrid(1, 2, wxGrid::wxGridSelectColumns);
+	grid->SetCellSize(0, 0, 1, 2);
 	grid->SetColLabelSize(0);
 	grid->SetRowLabelSize(0);
+	grid->SetMinSize(wxSize(-1, 200));
 	grid->EndBatch();
 
-	//gridSizer->Add(grid, 1, wxGROW);
-	plotDataGroup->Add(grid/*Sizer*/, 1, wxGROW);
+	plotDataGroup->Add(grid, 1, wxGROW);
 
 	// Set defaults
 	plotDataGroup->GetStaticBox()->Enable(false);
@@ -271,6 +269,8 @@ BEGIN_EVENT_TABLE(ControlsFrame, wxFrame)
 	EVT_RADIOBUTTON(idPointsAreYAxis, ControlsFrame::PointAreYAxisClicked)
 	EVT_RADIOBUTTON(idPointsAreCurveData, ControlsFrame::PointAreCurveDataClicked)
 	EVT_ACTIVATE(ControlsFrame::OnActivate)
+	EVT_GRID_CELL_LEFT_CLICK(ControlsFrame::GridClicked)
+	EVT_GRID_SELECT_CELL(ControlsFrame::GridClicked)
 END_EVENT_TABLE()
 
 //==========================================================================
@@ -424,8 +424,13 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 	std::stringstream ss;
 	unsigned int i;
 	for (i = 0; i < data.size(); i++)
-		// TODO:  Include real descriptions?
-		ss << "X(" << i << ")" << delimiter << "Y(" << i << "),";
+	{
+		wxString label(grid->GetCellValue(0, i * 2));
+		if (label.IsEmpty())
+			ss << "X" << i << delimiter << "Y" << i << delimiter;
+		else
+			ss << label << " X" << delimiter << label << " Y" << delimiter;
+	}
 
 	unsigned int j(0);
 	bool finished(false);
@@ -531,7 +536,78 @@ void ControlsFrame::PointAreCurveDataClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 void ControlsFrame::GridClicked(wxGridEvent& event)
 {
-	// TODO:  Implement
+	picker.SetCurveIndex(event.GetCol() / 2);
+
+	grid->SelectCol(event.GetCol());
+	if (event.GetCol() % 2 == 0)
+		grid->SelectCol(event.GetCol() + 1, true);
+	else
+		grid->SelectCol(event.GetCol() - 1, true);
+
+	event.Skip();
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		AddNewPoint
+//
+// Description:		Adds the next point to the grid.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::AddNewPoint()
+{
+	if (picker.GetDataExtractionMode() != PointPicker::DataCurve)
+		return;
+
+	const unsigned int xCol(picker.GetCurveIndex() * 2);
+	const unsigned int yCol(xCol + 1);
+
+	grid->BeginBatch();
+
+	int i(1);
+	while (true)
+	{
+		if (grid->GetNumberRows() == i)
+		{
+			grid->AppendRows();
+			int j;
+			for (j = 0; j < grid->GetNumberCols(); j++)
+				grid->SetReadOnly(i, j);
+			break;
+		}
+		else if (grid->GetCellValue(i, xCol).IsEmpty())
+			break;
+
+		i++;
+	}
+
+	grid->SetCellValue(i, xCol, wxString::Format(_T("%f"), picker.GetNewestPoint().x));
+	grid->SetCellValue(i, yCol, wxString::Format(_T("%f"), picker.GetNewestPoint().y));
+
+	// If first point in new column, append two columns to the grid, too
+	if (i == 1)
+	{
+		grid->AppendCols(2);
+		grid->SetCellSize(0, yCol + 1, 1, 2);
+		grid->SetReadOnly(0, yCol + 1, false);
+		int j;
+		for (j = 1; j < grid->GetNumberRows(); j++)
+		{
+			grid->SetReadOnly(j, yCol + 1);
+			grid->SetReadOnly(j, yCol + 2);
+		}
+	}
+
+	grid->EndBatch();
 }
 
 //==========================================================================
@@ -558,8 +634,36 @@ bool ControlsFrame::LoadFiles(const wxArrayString &fileList)
 	wxImage newImage(fileList[0]);
 	imageFrame->SetImage(newImage);
 	picker.Reset();
+	ResetGrid();
 
 	return true;
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		ResetGrid
+//
+// Description:		Resets the grid.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::ResetGrid()
+{
+	grid->BeginBatch();
+	if (grid->GetNumberCols() > 2)
+		grid->DeleteCols(2, grid->GetNumberCols() - 2);
+	if (grid->GetNumberRows() > 1)
+		grid->DeleteCols(1, grid->GetNumberRows() - 1);
+	grid->SetCellValue(0, 0, wxEmptyString);
+	grid->EndBatch();
 }
 
 //==========================================================================

@@ -41,6 +41,9 @@ public:
 	void SetDataExtractionMode(const DataExtractionMode& mode) { dataMode = mode; }
 	void SetCurveIndex(const unsigned int& curve) { curveIndex = curve; }
 
+	DataExtractionMode GetDataExtractionMode() const { return dataMode; }
+	unsigned int GetCurveIndex() const { return curveIndex; }
+
 	void ResetXAxis();
 	void ResetYAxis();
 	void ResetCurveData(const unsigned int& curve);
@@ -66,6 +69,8 @@ public:
 		double x, y, aux;
 	};
 
+	Point GetNewestPoint() const { return lastPoint; }
+
 	std::vector<std::vector<PointPicker::Point> > GetCurveData() const;
 	Point ScaleSinglePoint(const double& rawX, const double& rawY,
 		const double& xScale, const double& yScale,
@@ -86,6 +91,8 @@ private:
 	std::vector<Point> xAxisPoints;
 	std::vector<Point> yAxisPoints;
 	std::vector<std::vector<Point> > curvePoints;
+
+	Point lastPoint;
 
 	void HandleClipboardMode(const double& x, const double& y) const;
 	void HandleDataMode(const double& x, const double& y);

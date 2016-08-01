@@ -27,11 +27,13 @@ public:
 	void UpdateStatusBar(const double& rawX, const double& rawY,
 		const double& xScale, const double& yScale,
 		const double& xOffset, const double& yOffset);
+	void AddNewPoint();
 
 private:
 	void CreateControls();
 	wxStatusBar* BuildStatusBar();
 	void SetProperties();
+	void ResetGrid();
 
 	PointPicker picker;
 

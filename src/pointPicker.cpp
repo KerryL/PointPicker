@@ -134,7 +134,9 @@ void PointPicker::HandleDataMode(const double& x, const double& y)
 		while (curvePoints.size() <= curveIndex)
 			curvePoints.push_back(std::vector<Point>(0));
 
-		curvePoints[curveIndex].push_back(Point(x, y));
+		lastPoint.x = x;
+		lastPoint.y = y;
+		curvePoints[curveIndex].push_back(lastPoint);
 		return;
 	}
 
