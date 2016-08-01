@@ -12,6 +12,8 @@ REM ECHO outputFile = %outputFile%
 ECHO gitTag = %gitTag%
 ECHO gitHash = %gitHash%
 
+EXIT 0
+
 @ECHO // File:  %outputFile%> %outputPath%%outputFile%
 @ECHO // Auth:  getGitHash.bat>> %outputPath%%outputFile%
 @ECHO // Desc:  Automatically generated file containing latest git hash.>> %outputPath%%outputFile%
@@ -20,4 +22,4 @@ ECHO gitHash = %gitHash%
 @ECHO #include "pointPickerApp.h">> %outputPath%%outputFile%
 @ECHO.>> %outputPath%%outputFile%
 @ECHO const wxString PointPickerApp::versionString = _T("%gitTag%");>> %outputPath%%outputFile%
-@ECHO const wxString PointPickeerApp::gitHash = _T("%gitHash%");>> %outputPath%%outputFile%
+@ECHO const wxString PointPickerApp::gitHash = _T("%gitHash%");>> %outputPath%%outputFile%

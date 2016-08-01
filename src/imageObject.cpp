@@ -6,6 +6,7 @@
 // Local headers
 #include "imageObject.h"
 #include "pointPicker.h"
+#include "controlsFrame.h"
 
 //==========================================================================
 // Class:			ImageObject
@@ -14,12 +15,13 @@
 // Description:		Constructor for ImageObject class.
 //
 // Input Arguments:
-//		picker	= PointPicker&
-//		parent	= wxWindow&
-//		id		= wxWindowID
-//		image	= const wxBitmap&
-//		pos		= const wxPoint&
-//		size	= const wxSize&
+//		picker			= PointPicker&
+//		parent			= wxWindow&
+//		id				= wxWindowID
+//		image			= const wxBitmap&
+//		pos				= const wxPoint&
+//		size			= const wxSize&
+//		controlsFrame	= ControlsFrame&
 //
 // Output Arguments:
 //		None
@@ -29,8 +31,9 @@
 //
 //==========================================================================
 ImageObject::ImageObject(PointPicker& picker, wxWindow &parent, wxWindowID id,
-	const wxBitmap &image, const wxPoint &pos, const wxSize &size)
-	: wxStaticBitmap(&parent, id, image, pos, size), picker(picker)
+	const wxBitmap &image, const wxPoint &pos, const wxSize &size,
+	ControlsFrame& controlsFrame) : wxStaticBitmap(&parent, id, image, pos, size),
+	picker(picker), controlsFrame(controlsFrame)
 {
 	mouseMoved = false;
 	originalImage = image;
@@ -105,6 +108,10 @@ void ImageObject::OnClick(wxMouseEvent &event)
 //==========================================================================
 void ImageObject::OnDrag(wxMouseEvent& event)
 {
+	controlsFrame.UpdateStatusBar(event.GetX(), event.GetY(),
+		(double)originalImage.GetWidth() / GetBitmap().GetWidth(),
+		(double)originalImage.GetHeight() / GetBitmap().GetHeight(), 0.0, 0.0);
+
 	if (!event.LeftDown())
 		return;
 

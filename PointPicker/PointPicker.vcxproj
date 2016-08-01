@@ -90,6 +90,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;WXUSINGDLL;__WXMSW__;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./src;$(WXWIN)\lib\vc_dll\mswud;$(WXWIN)/include;$(EIGEN)</AdditionalIncludeDirectories>
       <SDLCheck>true</SDLCheck>
+      <DisableSpecificWarnings>4714</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -97,6 +98,9 @@
       <AdditionalLibraryDirectories>$(WXWIN)\lib\vc_dll</AdditionalLibraryDirectories>
       <AdditionalDependencies>wxbase31ud.lib;wxmsw31ud_adv.lib;wxbase31ud_xml.lib;wxmsw31ud_core.lib;wxzlibd.lib;wxpngd.lib;wxtiffd.lib;wxjpegd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>../getGitHash.bat ../</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -123,6 +127,7 @@
       <AdditionalIncludeDirectories>./src;$(WXWIN)\lib\vc_lib\mswu;$(WXWIN)/include;$(EIGEN)</AdditionalIncludeDirectories>
       <SDLCheck>true</SDLCheck>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DisableSpecificWarnings>4714</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -132,6 +137,9 @@
       <AdditionalLibraryDirectories>$(WXWIN)\lib\vc_lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>wxbase31u.lib;wxmsw31u_adv.lib;wxbase31u_xml.lib;wxexpat.lib;wxmsw31u_core.lib;wxzlib.lib;wxpng.lib;wxtiff.lib;wxjpeg.lib;comctl32.lib;rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>../getGitHash.bat ../</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -152,6 +160,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\controlsFrame.cpp" />
+    <ClCompile Include="..\src\gitHash.cpp" />
     <ClCompile Include="..\src\imageDropTarget.cpp" />
     <ClCompile Include="..\src\imageFrame.cpp" />
     <ClCompile Include="..\src\imageObject.cpp" />

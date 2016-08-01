@@ -24,9 +24,13 @@ public:
 	bool LoadFiles(const wxArrayString &fileList);
 
 	inline PointPicker& GetPicker() { return picker; }
+	void UpdateStatusBar(const double& rawX, const double& rawY,
+		const double& xScale, const double& yScale,
+		const double& xOffset, const double& yOffset);
 
 private:
 	void CreateControls();
+	wxStatusBar* BuildStatusBar();
 	void SetProperties();
 
 	PointPicker picker;
@@ -56,10 +60,22 @@ private:
 	void GridClicked(wxGridEvent& event);
 	void OnActivate(wxActivateEvent& event);
 
-	wxStaticBoxSizer *plotDataGroup;
+	wxStaticBoxSizer* plotDataGroup;
 	wxGrid* grid;
+	wxStatusBar* statusBar;
 
 	ImageFrame* imageFrame;
+
+	enum StatusFields
+	{
+		StatusRawLabel,
+		StatusRaw,
+		StatusProcessedLabel,
+		StatusProcessed,
+		StatusVersionInfo,
+
+		StatusFieldCount
+	};
 
 	DECLARE_EVENT_TABLE()
 };

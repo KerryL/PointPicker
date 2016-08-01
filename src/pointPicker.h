@@ -67,6 +67,9 @@ public:
 	};
 
 	std::vector<std::vector<PointPicker::Point> > GetCurveData() const;
+	Point ScaleSinglePoint(const double& rawX, const double& rawY,
+		const double& xScale, const double& yScale,
+		const double& xOffset, const double& yOffset, double& x, double& y) const;
 
 	wxString GetErrorString() const { return errorString; }
 
@@ -100,6 +103,12 @@ private:
 	static void GetBestAxisScale(const std::vector<Point>& points, AxisInfo& info);
 	static Point GetNearestPoint(const Point& point, const AxisInfo& info);
 	std::vector<std::vector<Point> > ScaleCurvePoints(const AxisInfo& xInfo, const AxisInfo& yInfo) const;
+	static Point ScaleSinglePoint(const AxisInfo& xInfo, const AxisInfo& yInfo, const Point& point);
+
+	static double DoLinearCalculation(const double& nx, const double& ny,
+		const Point& p, const double& zero);
+	static double DoLogarithmicCalculation(const double& nx, const double& ny,
+		const Point& p, const double& zero);
 };
 
 #endif// POINT_PICKER_H_

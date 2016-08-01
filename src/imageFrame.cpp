@@ -168,7 +168,7 @@ void ImageFrame::CreateControls()
 
 	wxImage dummyImage(500, 500);
 	image = new ImageObject(controlsFrame.GetPicker(), *this, wxID_ANY,
-		dummyImage, wxDefaultPosition, wxDefaultSize);
+		dummyImage, wxDefaultPosition, wxDefaultSize, controlsFrame);
 	mainSizer->Add(image, 1, wxGROW);
 
 	SetSizerAndFit(mainSizer);

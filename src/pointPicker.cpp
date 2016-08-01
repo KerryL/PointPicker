@@ -311,6 +311,54 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 
 //==========================================================================
 // Class:			PointPicker
+// Function:		ScaleSinglePoint
+//
+// Description:		Processes data for single point.
+//
+// Input Arguments:
+//		rawX	= const double&
+//		rawY	= const double&
+//		xScale	= const double&
+//		yScale	= const double&
+//		xOffset	= const double&
+//		yOffset	= const double&
+//
+// Output Arguments:
+//		x		= double&
+//		y		= double&
+//
+// Return Value:
+//		Point
+//
+//==========================================================================
+PointPicker::Point PointPicker::ScaleSinglePoint(const double& rawX, const double& rawY,
+	const double& xScale, const double& yScale,
+	const double& xOffset, const double& yOffset, double& x, double& y) const
+{
+	x = ScaleOrdinate(rawX, xScale, xOffset);
+	y = ScaleOrdinate(rawY, yScale, yOffset);
+	errorString.clear();
+
+	AxisInfo xInfo, yInfo;
+	if (!GetBestFitAxis(xAxisPoints, xInfo))
+		errorString += _T("\nNot enough unique points to estimate X-axis");
+	if (!GetBestFitAxis(yAxisPoints, yInfo))
+		errorString += _T("\nNot enough unique points to estimate Y-axis");
+
+	if (!errorString.empty())
+		return Point(0.0, 0.0);
+
+	// TODO:  Warning if axes are not perpendicular?
+	// TODO:  Warning/error if axes are parallel?
+
+	GetBestAxisScale(xAxisPoints, xInfo);
+	GetBestAxisScale(yAxisPoints, yInfo);
+
+	return ScaleSinglePoint(xInfo, yInfo, Point(x, y));
+}
+
+//==========================================================================
+// Class:			PointPicker
 // Function:		GetBestFitAxis
 //
 // Description:		Computes best fit line for specified axis data.
@@ -509,7 +557,7 @@ PointPicker::Point PointPicker::GetNearestPoint(const Point& point, const AxisIn
 //		points	= const std::vector<Point>&
 //
 // Output Arguments:
-//		info	= AxisInfo&
+//		None
 //
 // Return Value:
 //		None
@@ -533,26 +581,118 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::ScaleCurvePoints(
 		if (xInfo.isLogarithmic)
 		{
 			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].x = pow(10.0, scaledCurves[i][j].x * nxX + scaledCurves[i][j].y * nyX + xInfo.zero);
+				scaledCurves[i][j].x = DoLogarithmicCalculation(nxX, nyX, scaledCurves[i][j], xInfo.zero);
 		}
 		else
 		{
 			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].x = scaledCurves[i][j].x * nxX + scaledCurves[i][j].y * nyX + xInfo.zero;
+				scaledCurves[i][j].x = DoLinearCalculation(nxX, nyX, scaledCurves[i][j], xInfo.zero);
 		}
 
 		if (yInfo.isLogarithmic)
 		{
 			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].y = pow(10.0, scaledCurves[i][j].x * nxY + scaledCurves[i][j].y * nyY + yInfo.zero);
+				scaledCurves[i][j].y = DoLogarithmicCalculation(nxY, nyY, scaledCurves[i][j], yInfo.zero);
 		}
 		else
 		{
 			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].y = scaledCurves[i][j].x * nxY + scaledCurves[i][j].y * nyY + yInfo.zero;
+				scaledCurves[i][j].y = DoLinearCalculation(nxY, nyY, scaledCurves[i][j], yInfo.zero);
 		}
 	}
 
 	return scaledCurves;
 }
 
+//==========================================================================
+// Class:			PointPicker
+// Function:		ScaleSinglePoint
+//
+// Description:		Returns the scaled coordinates for the specified point.
+//
+// Input Arguments:
+//		xInfo	= const AxisInfo&
+//		yInfo	= const AxisInfo&
+//		point	= const Point&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		Point
+//
+//==========================================================================
+PointPicker::Point PointPicker::ScaleSinglePoint(const AxisInfo& xInfo,
+	const AxisInfo& yInfo, const Point& point)
+{
+	// The two axes form a basis for the plot space.  So both the x and y
+	// components of a point contribute to both the x and y values of the
+	// scaled point.
+	const double nxX(cos(xInfo.angle) * xInfo.scale);
+	const double nyX(sin(xInfo.angle) * xInfo.scale);
+	const double nxY(cos(yInfo.angle) * yInfo.scale);
+	const double nyY(sin(yInfo.angle) * yInfo.scale);
+
+	Point p;
+	if (xInfo.isLogarithmic)
+		p.x = DoLogarithmicCalculation(nxX, nyX, point, xInfo.zero);
+	else
+		p.x = DoLinearCalculation(nxX, nyX, point, xInfo.zero);
+
+	if (yInfo.isLogarithmic)
+		p.y = DoLogarithmicCalculation(nxY, nyY, point, yInfo.zero);
+	else
+		p.y = DoLinearCalculation(nxY, nyY, point, yInfo.zero);
+
+	return p;
+}
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		DoLinearCalculation
+//
+// Description:		Returns the scaled ordinate for the specified values.
+//
+// Input Arguments:
+//		nx		= const double&
+//		ny		= const double&
+//		p		= const Point&
+//		zero	= const double&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		double
+//
+//==========================================================================
+double PointPicker::DoLinearCalculation(const double& nx, const double& ny,
+	const Point& p, const double& zero)
+{
+	return p.x * nx + p.y * ny + zero;
+}
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		DoLogarithmicCalculation
+//
+// Description:		Returns the scaled ordinate for the specified values.
+//
+// Input Arguments:
+//		nx		= const double&
+//		ny		= const double&
+//		p		= const Point&
+//		zero	= const double&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		double
+//
+//==========================================================================
+double PointPicker::DoLogarithmicCalculation(const double& nx, const double& ny,
+	const Point& p, const double& zero)
+{
+	return pow(10.0, p.x * nx + p.y * ny + zero);
+}

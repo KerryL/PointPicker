@@ -11,12 +11,13 @@
 
 // Local forward declarations
 class PointPicker;
+class ControlsFrame;
 
 class ImageObject : public wxStaticBitmap
 {
 public:
 	ImageObject(PointPicker& picker, wxWindow &parent, wxWindowID id, const wxBitmap &image,
-		const wxPoint &pos, const wxSize &size);
+		const wxPoint &pos, const wxSize &size, ControlsFrame& controlsFrame);
 
 	virtual ~ImageObject() {}
 
@@ -25,6 +26,7 @@ public:
 
 private:
 	PointPicker &picker;
+	ControlsFrame& controlsFrame;
 	wxBitmap originalImage;
 
 	void OnClick(wxMouseEvent &event);

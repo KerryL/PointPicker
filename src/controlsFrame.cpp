@@ -141,6 +141,9 @@ void ControlsFrame::CreateControls()
 	plotDataGroup->GetStaticBox()->Enable(false);
 	static_cast<wxRadioButton*>(this->FindWindow(idPointsAreXAxis))->SetValue(true);
 
+	statusBar = BuildStatusBar();
+	SetStatusBar(statusBar);
+
 	SetSizerAndFit(topSizer);
 }
 
@@ -168,6 +171,55 @@ void ControlsFrame::SetProperties()
 	Center();
 
 	SetDropTarget(dynamic_cast<wxDropTarget*>(new ImageDropTarget(*this)));
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		BuildStatusBar
+//
+// Description:		Builds the status bar for this frame.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		wxStatusBar*
+//
+//==========================================================================
+wxStatusBar* ControlsFrame::BuildStatusBar()
+{
+	wxStatusBar* sb = new wxStatusBar(this);
+	sb->SetFieldsCount(StatusFieldCount);
+	const int styles[] =
+	{
+		wxSB_FLAT,		// StatusRawLabel
+		wxSB_SUNKEN,	// StatusRaw
+		wxSB_FLAT,		// StatusProcessedLabel
+		wxSB_SUNKEN,	// StatusProcessed
+		wxSB_FLAT		// StatusVersionInfo
+	};
+	sb->SetStatusStyles(StatusFieldCount, styles);
+
+	sb->SetStatusText(_T("Px:"), StatusRawLabel);
+	sb->SetStatusText(_T("Val:"), StatusProcessedLabel);
+	sb->SetStatusText(PointPickerApp::versionString + _T(" (")
+		+ PointPickerApp::gitHash + _T(")"), StatusVersionInfo);
+
+	// TODO:  Better way to handle width calculation?  Does this look OK across platforms?
+	const int widths[] =
+	{
+		20,		// StatusRawLabel
+		-1,		// StatusRaw
+		20,		// StatusProcessedLabel
+		-2,		// StatusProcessed
+		75		// StatusVersionInfo
+	};
+	sb->SetStatusWidths(StatusFieldCount, widths);
+
+	return sb;
 }
 
 //==========================================================================
@@ -340,32 +392,36 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 		return;
 	}
 
-	wxChar delimiter;
+	wxString delimiter;
 	if (dialog.GetPath().Mid(dialog.GetPath().find_last_of('.')).CmpNoCase(_T(".txt")) == 0)
-		delimiter = '\t';
+		delimiter = _T("\t");
 	else
-		delimiter = ',';
+		delimiter = _T(",");
 
+	std::stringstream ss;
 	unsigned int i;
 	for (i = 0; i < data.size(); i++)
 		// TODO:  Include real descriptions?
-		file << "X(" << i << ")" << delimiter << "Y(" << i << "),";
+		ss << "X(" << i << ")" << delimiter << "Y(" << i << "),";
 
 	unsigned int j(0);
 	bool finished(false);
 	while (!finished)
 	{
 		finished = true;
-		file << "\n";
+
+		file << ss.str() << "\n";
+		ss.str("");
+		ss.clear();
 		for (i = 0; i < data.size(); i++)
 		{
 			if (j < data[i].size())
 			{
-				file << data[i][j].x << delimiter << data[i][j].y << delimiter;
+				ss << data[i][j].x << delimiter << data[i][j].y << delimiter;
 				finished = false;
 			}
 			else
-				file << "0,0,";// TODO:  Better to leave blank? 
+				ss << "0" << delimiter << "0" << delimiter;// TODO:  Better to leave blank, or use zeros?
 		}
 		j++;
 	}
@@ -481,4 +537,40 @@ bool ControlsFrame::LoadFiles(const wxArrayString &fileList)
 	picker.Reset();
 
 	return true;
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		UpdateStatusBar
+//
+// Description:		Updates the status bar text with information for the current
+//					cursor position.
+//
+// Input Arguments:
+//		rawX	= const double&
+//		rawY	= const double&
+//		xScale	= const double&
+//		yScale	= const double&
+//		xOffset	= const double&
+//		yOffset	= const double&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::UpdateStatusBar(const double& rawX, const double& rawY,
+	const double& xScale, const double& yScale,
+	const double& xOffset, const double& yOffset)
+{
+	double x, y;
+	PointPicker::Point p(picker.ScaleSinglePoint(rawX, rawY, xScale, yScale, xOffset, yOffset, x, y));
+	statusBar->SetStatusText(wxString::Format(_T("(%d, %d)"), (int)x, (int)y), StatusRaw);
+
+	if (!picker.GetErrorString().empty())
+		statusBar->SetStatusText(_T(""), StatusProcessed);
+	else
+		statusBar->SetStatusText(wxString::Format(_T("(%f, %f)"), p.x, p.y), StatusProcessed);
 }
