@@ -301,6 +301,7 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 		return std::vector<std::vector<Point> >(0);
 
 	// TODO:  Warning if axes are not perpendicular?
+	// TODO:  Warning/error if axes are parallel?
 
 	GetBestAxisScale(xAxisPoints, xInfo);
 	GetBestAxisScale(yAxisPoints, yInfo);
@@ -517,6 +518,14 @@ PointPicker::Point PointPicker::GetNearestPoint(const Point& point, const AxisIn
 std::vector<std::vector<PointPicker::Point> > PointPicker::ScaleCurvePoints(
 	const AxisInfo& xInfo, const AxisInfo& yInfo) const
 {
+	// The two axes form a basis for the plot space.  So both the x and y
+	// components of a point contribute to both the x and y values of the
+	// scaled point.
+	const double nxX(cos(xInfo.angle) * xInfo.scale);
+	const double nyX(sin(xInfo.angle) * xInfo.scale);
+	const double nxY(cos(yInfo.angle) * yInfo.scale);
+	const double nyY(sin(yInfo.angle) * yInfo.scale);
+
 	std::vector<std::vector<Point> > scaledCurves(curvePoints);
 	unsigned int i, j;
 	for (i = 0; i < scaledCurves.size(); i++)
@@ -529,7 +538,7 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::ScaleCurvePoints(
 		else
 		{
 			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].x = scaledCurves[i][j].x * xInfo.scale + xInfo.zero;
+				scaledCurves[i][j].x = scaledCurves[i][j].x * nxX + scaledCurves[i][j].y * nyX + xInfo.zero;
 		}
 
 		if (yInfo.isLogarithmic)
@@ -540,7 +549,7 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::ScaleCurvePoints(
 		else
 		{
 			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].y = scaledCurves[i][j].y * yInfo.scale + yInfo.zero;
+				scaledCurves[i][j].y = scaledCurves[i][j].x * nxY + scaledCurves[i][j].y * nyY + yInfo.zero;
 		}
 	}
 
