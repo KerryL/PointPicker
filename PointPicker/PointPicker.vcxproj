@@ -101,6 +101,9 @@
     <PreBuildEvent>
       <Command>../getGitHash.bat ../</Command>
     </PreBuildEvent>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(WXWIN)/include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -140,6 +143,9 @@
     <PreBuildEvent>
       <Command>../getGitHash.bat ../</Command>
     </PreBuildEvent>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(WXWIN)/include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -174,6 +180,9 @@
     <ClInclude Include="..\src\imageObject.h" />
     <ClInclude Include="..\src\pointPicker.h" />
     <ClInclude Include="..\src\pointPickerApp.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\res\pointPicker.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

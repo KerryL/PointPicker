@@ -16,6 +16,17 @@
 #include "imageDropTarget.h"
 #include "pointPickerApp.h"
 
+// *nix Icons
+#ifdef __WXGTK__
+#include "../../res/icons/pp16.xpm"
+#include "../../res/icons/pp24.xpm"
+#include "../../res/icons/pp32.xpm"
+#include "../../res/icons/pp48.xpm"
+#include "../../res/icons/pp64.xpm"
+#include "../../res/icons/pp128.xpm"
+#include "../../res/icons/pp256.xpm"
+#endif
+
 //==========================================================================
 // Class:			ControlsFrame
 // Function:		ControlsFrame
@@ -169,6 +180,18 @@ void ControlsFrame::SetProperties()
 	SetTitle(PointPickerApp::title);
 	SetName(PointPickerApp::name);
 	Center();
+
+#ifdef __WXMSW__
+	SetIcon(wxIcon(_T("ICON_ID_MAIN"), wxBITMAP_TYPE_ICO_RESOURCE));
+#elif __WXGTK__
+	SetIcon(wxIcon(pp16_xpm));
+	SetIcon(wxIcon(pp24_xpm));
+	SetIcon(wxIcon(pp32_xpm));
+	SetIcon(wxIcon(pp48_xpm));
+	SetIcon(wxIcon(pp64_xpm));
+	SetIcon(wxIcon(pp128_xpm));
+	SetIcon(wxIcon(pp256_xpm));
+#endif
 
 	SetDropTarget(dynamic_cast<wxDropTarget*>(new ImageDropTarget(*this)));
 }
