@@ -22,15 +22,12 @@ public:
 	ControlsFrame();
 
 	bool LoadFiles(const wxArrayString &fileList);
-	inline bool IsClosing() const { return isClosing; }
 
 	inline PointPicker& GetPicker() { return picker; }
 
 private:
 	void CreateControls();
 	void SetProperties();
-
-	bool isClosing;
 
 	PointPicker picker;
 
@@ -57,7 +54,6 @@ private:
 	void PointAreYAxisClicked(wxCommandEvent& event);
 	void PointAreCurveDataClicked(wxCommandEvent& event);
 	void GridClicked(wxGridEvent& event);
-	void OnClose(wxCloseEvent& event);
 	void OnActivate(wxActivateEvent& event);
 
 	wxStaticBoxSizer *plotDataGroup;

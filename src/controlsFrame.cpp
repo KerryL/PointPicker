@@ -5,6 +5,7 @@
 
 // Standard C++ headers
 #include <fstream>
+#include <sstream>
 
 // wxWidgets headers
 #include <wx/tglbtn.h>
@@ -35,8 +36,6 @@
 ControlsFrame::ControlsFrame() : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaultPosition,
 								 wxDefaultSize, wxDEFAULT_FRAME_STYLE)
 {
-	isClosing = false;
-
 	CreateControls();
 	SetProperties();
 
@@ -44,31 +43,6 @@ ControlsFrame::ControlsFrame() : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaul
 	imageFrame->Show();
 
 	wxInitAllImageHandlers();
-}
-
-//==========================================================================
-// Class:			ControlsFrame
-// Function:		OnClose
-//
-// Description:		Handles window close events.
-//
-// Input Arguments:
-//		event	= wxCloseEvent&
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		None
-//
-//==========================================================================
-void ControlsFrame::OnClose(wxCloseEvent& event)
-{
-	isClosing = true;
-	if (imageFrame)
-		imageFrame->Close(true);
-
-	event.Skip();
 }
 
 //==========================================================================
@@ -221,7 +195,6 @@ BEGIN_EVENT_TABLE(ControlsFrame, wxFrame)
 	EVT_RADIOBUTTON(idPointsAreXAxis, ControlsFrame::PointAreXAxisClicked)
 	EVT_RADIOBUTTON(idPointsAreYAxis, ControlsFrame::PointAreYAxisClicked)
 	EVT_RADIOBUTTON(idPointsAreCurveData, ControlsFrame::PointAreCurveDataClicked)
-	EVT_CLOSE(ControlsFrame::OnClose)
 	EVT_ACTIVATE(ControlsFrame::OnActivate)
 END_EVENT_TABLE()
 
@@ -353,21 +326,30 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 		return;
 	}
 
-	// TODO:  Get file name from user
-	wxString fileName;
-	fileName = _T("test.csv");
+	wxFileDialog dialog(this, _T("Save Plot Data"), wxEmptyString, wxEmptyString,
+		_T("Comma-Separated Values (*.csv)|*.csv|Tab Delimited (*.txt)|*.txt"),
+		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
-	std::ofstream file(fileName.c_str());
+	if (dialog.ShowModal() == wxID_CANCEL)
+		return;
+
+	std::ofstream file(dialog.GetPath().ToStdString().c_str());
 	if (!file.is_open() || !file.good())
 	{
-		wxMessageBox(_T("Failed to open '") + fileName + _T("' for output."), _T("Error"));
+		wxMessageBox(_T("Failed to open '") + dialog.GetPath() + _T("' for output."), _T("Error"));
 		return;
 	}
+
+	wxChar delimiter;
+	if (dialog.GetPath().Mid(dialog.GetPath().find_last_of('.')).CmpNoCase(_T(".txt")) == 0)
+		delimiter = '\t';
+	else
+		delimiter = ',';
 
 	unsigned int i;
 	for (i = 0; i < data.size(); i++)
 		// TODO:  Include real descriptions?
-		file << "X(" << i << "),Y(" << i << "),";
+		file << "X(" << i << ")" << delimiter << "Y(" << i << "),";
 
 	unsigned int j(0);
 	bool finished(false);
@@ -379,7 +361,7 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 		{
 			if (j < data[i].size())
 			{
-				file << data[i][j].x << "," << data[i][j].y << ",";
+				file << data[i][j].x << delimiter << data[i][j].y << delimiter;
 				finished = false;
 			}
 			else

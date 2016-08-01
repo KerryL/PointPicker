@@ -26,7 +26,7 @@
 //		None
 //
 //==========================================================================
-ImageFrame::ImageFrame(ControlsFrame& controlsFrame) : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaultPosition,
+ImageFrame::ImageFrame(ControlsFrame& controlsFrame) : wxFrame(&controlsFrame, wxID_ANY, wxEmptyString, wxDefaultPosition,
 	wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxFRAME_NO_TASKBAR), controlsFrame(controlsFrame)
 {
 	CreateControls();
@@ -94,6 +94,10 @@ void ImageFrame::SetImage(wxImage &i)
 void ImageFrame::SetProperties()
 {
 	SetTitle(_T("Source Image"));
+	wxPoint position(controlsFrame.GetPosition());
+	int parentWidth(controlsFrame.GetSize().GetWidth());
+	position.x += parentWidth;
+	SetPosition(position);
 
 	SetDropTarget(dynamic_cast<wxDropTarget*>(new ImageDropTarget(controlsFrame)));
 }
@@ -117,9 +121,6 @@ void ImageFrame::SetProperties()
 void ImageFrame::OnClose(wxCloseEvent& event)
 {
 	event.Skip();
-	if (controlsFrame.IsClosing())
-		return;
-
 	if (!controlsFrame.Close())
 		event.Veto();
 }
@@ -165,7 +166,7 @@ void ImageFrame::CreateControls()
 {
 	wxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-	wxImage dummyImage(320, 200);
+	wxImage dummyImage(500, 500);
 	image = new ImageObject(controlsFrame.GetPicker(), *this, wxID_ANY,
 		dummyImage, wxDefaultPosition, wxDefaultSize);
 	mainSizer->Add(image, 1, wxGROW);
