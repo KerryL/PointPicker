@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <cmath>
+#include <limits>
 
 // wxWidgets headers
 #include <wx/clipbrd.h>
@@ -189,179 +190,88 @@ void PointPicker::UpdateTransformation()
 	else
 		errorString.clear();
 
-	// Find the matrices that map source image points (in pixels) to basis
-	// vectors (sourceTransformation) and plot points (in user-specified
-	// values) to basis vectors (plotTransformation)
-	Eigen::MatrixXd sourceTransformation(3, referencePoints.size() - 1);
-	Eigen::MatrixXd plotTransformation(3, referencePoints.size() - 1);
-	Eigen::Vector3d sourceKnowns;
+	// TODO:  Check to make sure points are not co-linear, etc.
 
-	if (referencePoints.size() == 4)
+	// Use the Direct Linear Transform approach to solve for the unknown
+	// projective transforms.  Solve for the transforms assuming all different
+	// combination of linear and logarithmic scales in order to determine
+	// which combination provides the lowest error.
+	double xLinYLinError;
+	Eigen::MatrixXd xLinYLinTransformation(ComputeTransformation(referencePoints, xLinYLinError));
+	if (referencePoints.size() == 4)// Not enough information to determine if scaling is logarithmic
 	{
-		unsigned int i;
-		for (i = 0; i < referencePoints.size() - 1; i++)
-		{
-			sourceTransformation(0, i) = referencePoints[i].imageCoords.x;
-			sourceTransformation(1, i) = referencePoints[i].imageCoords.y;
-			sourceTransformation(2, i) = 1.0;
-
-			// TODO:  Need to handle log values, too, and combinations of x log, y lin, etc.
-			plotTransformation(0, i) = referencePoints[i].valueCoords.x;
-			plotTransformation(1, i) = referencePoints[i].valueCoords.y;
-			plotTransformation(2, i) = 1.0;
-		}
-
-		sourceKnowns(0) = referencePoints.back().imageCoords.x;
-		sourceKnowns(1) = referencePoints.back().imageCoords.y;
-		sourceKnowns(2) = 1.0;
-
-		Eigen::Vector3d plotKnowns;
-		plotKnowns(0) = referencePoints.back().valueCoords.x;
-		plotKnowns(1) = referencePoints.back().valueCoords.y;
-		plotKnowns(2) = 1.0;
-
-		Eigen::VectorXd sourceScaleVector(sourceTransformation.jacobiSvd(
-			Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sourceKnowns));
-		Eigen::VectorXd plotScaleVector(plotTransformation.jacobiSvd(
-			Eigen::ComputeThinU | Eigen::ComputeThinV).solve(plotKnowns));
-
-		// TODO:  Are we sure this check is good?
-		// Check for zero values in the scale vectors
-		if ((sourceScaleVector.array() == 0.0).any() ||
-			(plotScaleVector.array() == 0.0).any())
-		{
-			errorString = _T("Reference points must span image and plot spaces");
-			return;
-		}
-
-		for (i = 0; i < (unsigned int)sourceTransformation.cols(); i++)
-		{
-			sourceTransformation.col(i) *= sourceScaleVector(i);
-			plotTransformation.col(i) *= plotScaleVector(i);
-		}
-
-		transformationMatrix = plotTransformation * PseudoInverse(sourceTransformation);
-
-		// Not enough point provided to make a dermination about logarithmic scaling
+		transformationMatrix = xLinYLinTransformation;
 		xIsLogarithmic = false;
 		yIsLogarithmic = false;
 		return;
 	}
-	
-	Eigen::Vector3d xLinYLinPlotKnowns;
-	Eigen::Vector3d xLinYLogPlotKnowns;
-	Eigen::Vector3d xLogYLinPlotKnowns;
-	Eigen::Vector3d xLogYLogPlotKnowns;
+
+	std::vector<ReferencePair> xLinYLogReferencePoints(referencePoints);
+	std::vector<ReferencePair> xLogYLinReferencePoints(referencePoints);
+	std::vector<ReferencePair> xLogYLogReferencePoints(referencePoints);
+
+	bool xLogIsOption(true);
+	bool yLogIsOption(true);
 
 	unsigned int i;
-	for (i = 0; i < referencePoints.size() - 1; i++)
+	for (i = 0; i < referencePoints.size(); i++)
 	{
-		sourceTransformation(0, i) = referencePoints[i].imageCoords.x;
-		sourceTransformation(1, i) = referencePoints[i].imageCoords.y;
-		sourceTransformation(2, i) = 1.0;
+		if (referencePoints[i].valueCoords.x <= 0.0)
+			xLogIsOption = false;
+		if (referencePoints[i].valueCoords.y <= 0.0)
+			yLogIsOption = false;
 
-		// TODO:  Need to handle log values, too, and combinations of x log, y lin, etc.
-		plotTransformation(0, i) = referencePoints[i].valueCoords.x;
-		plotTransformation(1, i) = referencePoints[i].valueCoords.y;
-		plotTransformation(2, i) = 1.0;
+		if (yLogIsOption)
+			xLinYLogReferencePoints[i].valueCoords.y = log10(referencePoints[i].valueCoords.y);
+		if (xLogIsOption)
+			xLogYLinReferencePoints[i].valueCoords.x = log10(referencePoints[i].valueCoords.x);
+
+		xLogYLogReferencePoints[i].valueCoords.x = xLogYLinReferencePoints[i].valueCoords.x;
+		xLogYLogReferencePoints[i].valueCoords.y = xLinYLogReferencePoints[i].valueCoords.y;
 	}
 
-	sourceKnowns(0) = referencePoints.back().imageCoords.x;
-	sourceKnowns(1) = referencePoints.back().imageCoords.y;
-	sourceKnowns(2) = 1.0;
+	double xLinYLogError(std::numeric_limits<double>::max());
+	double xLogYLinError(std::numeric_limits<double>::max());
+	double xLogYLogError(std::numeric_limits<double>::max());
 
-	xLinYLinPlotKnowns(0) = referencePoints.back().valueCoords.x;
-	xLinYLinPlotKnowns(1) = referencePoints.back().valueCoords.y;
-	xLinYLinPlotKnowns(2) = 1.0;
+	Eigen::MatrixXd xLinYLogTransformation;
+	Eigen::MatrixXd xLogYLinTransformation;
+	Eigen::MatrixXd xLogYLogTransformation;
 
-	xLinYLogPlotKnowns(0) = referencePoints.back().valueCoords.x;
-	xLinYLogPlotKnowns(1) = log10(referencePoints.back().valueCoords.y);
-	xLinYLogPlotKnowns(2) = 1.0;
-
-	xLogYLinPlotKnowns(0) = log10(referencePoints.back().valueCoords.x);
-	xLogYLinPlotKnowns(1) = referencePoints.back().valueCoords.y;
-	xLogYLinPlotKnowns(2) = 1.0;
-
-	xLogYLogPlotKnowns(0) = log10(referencePoints.back().valueCoords.x);
-	xLogYLogPlotKnowns(1) = log10(referencePoints.back().valueCoords.y);
-	xLogYLogPlotKnowns(2) = 1.0;
-
-	Eigen::VectorXd sourceScaleVector(sourceTransformation.jacobiSvd(
-		Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sourceKnowns));
-	Eigen::VectorXd xLinYLinPlotScaleVector(plotTransformation.jacobiSvd(
-		Eigen::ComputeThinU | Eigen::ComputeThinV).solve(xLinYLinPlotKnowns));
-	Eigen::VectorXd xLinYLogPlotScaleVector(plotTransformation.jacobiSvd(
-		Eigen::ComputeThinU | Eigen::ComputeThinV).solve(xLinYLogPlotKnowns));
-	Eigen::VectorXd xLogYLinPlotScaleVector(plotTransformation.jacobiSvd(
-		Eigen::ComputeThinU | Eigen::ComputeThinV).solve(xLogYLinPlotKnowns));
-	Eigen::VectorXd xLogYLogPlotScaleVector(plotTransformation.jacobiSvd(
-		Eigen::ComputeThinU | Eigen::ComputeThinV).solve(xLogYLogPlotKnowns));
-
-	// TODO:  Are we sure this check is good?
-	// Check for zero values in the scale vectors
-	if ((sourceScaleVector.array() == 0.0).any() ||
-		(xLinYLinPlotScaleVector.array() == 0.0).any() ||
-		(xLinYLogPlotScaleVector.array() == 0.0).any() ||
-		(xLogYLinPlotScaleVector.array() == 0.0).any() ||
-		(xLogYLogPlotScaleVector.array() == 0.0).any())
+	if (yLogIsOption)
 	{
-		errorString = _T("Reference points must span image and plot spaces");
-		return;
+		xLinYLogTransformation = ComputeTransformation(xLinYLogReferencePoints, xLinYLogError);
+		if (xLogIsOption)
+			xLogYLogTransformation = ComputeTransformation(xLogYLogReferencePoints, xLogYLogError);
 	}
 
-	Eigen::MatrixXd xLinYLinPlotTransformation(plotTransformation);
-	Eigen::MatrixXd xLinYLogPlotTransformation(plotTransformation);
-	Eigen::MatrixXd xLogYLinPlotTransformation(plotTransformation);
-	Eigen::MatrixXd xLogYLogPlotTransformation(plotTransformation);
-	for (i = 0; i < (unsigned int)sourceTransformation.cols(); i++)
+	if (xLogIsOption)
+		xLogYLinTransformation = ComputeTransformation(xLogYLinReferencePoints, xLogYLinError);
+
+	if (xLinYLinError < xLinYLogError &&
+		xLinYLinError < xLogYLinError &&
+		xLinYLinError < xLogYLogError)
 	{
-		sourceTransformation.col(i) *= sourceScaleVector(i);
-		xLinYLinPlotTransformation.col(i) *= xLinYLinPlotScaleVector(i);
-		xLinYLogPlotTransformation.col(i) *= xLinYLogPlotScaleVector(i);
-		xLogYLinPlotTransformation.col(i) *= xLogYLinPlotScaleVector(i);
-		xLogYLogPlotTransformation.col(i) *= xLogYLogPlotScaleVector(i);
-	}
-
-	Eigen::MatrixXd sourceInverse(PseudoInverse(sourceTransformation));
-	xLinYLinPlotTransformation *= sourceInverse;
-	xLinYLogPlotTransformation *= sourceInverse;
-	xLogYLinPlotTransformation *= sourceInverse;
-	xLogYLogPlotTransformation *= sourceInverse;
-
-	Eigen::VectorXd xLinYLinError(xLinYLinPlotTransformation * sourceKnowns - xLinYLinPlotKnowns);
-	Eigen::VectorXd xLinYLogError(xLinYLogPlotTransformation * sourceKnowns - xLinYLogPlotKnowns);
-	Eigen::VectorXd xLogYLinError(xLogYLinPlotTransformation * sourceKnowns - xLogYLinPlotKnowns);
-	Eigen::VectorXd xLogYLogError(xLogYLogPlotTransformation * sourceKnowns - xLogYLogPlotKnowns);
-
-	const double xLinYLinErrorMag(xLinYLinError.dot(xLinYLinError));
-	const double xLinYLogErrorMag(xLinYLogError.dot(xLinYLogError));
-	const double xLogYLinErrorMag(xLogYLinError.dot(xLogYLinError));
-	const double xLogYLogErrorMag(xLogYLogError.dot(xLogYLogError));
-
-	if (xLinYLinErrorMag < xLinYLogErrorMag &&
-		xLinYLinErrorMag < xLogYLinErrorMag &&
-		xLinYLinErrorMag < xLogYLogErrorMag)
-	{
-		transformationMatrix = xLinYLinPlotTransformation;
+		transformationMatrix = xLinYLinTransformation;
 		xIsLogarithmic = false;
 		yIsLogarithmic = false;
 	}
-	else if (xLinYLogErrorMag < xLogYLinErrorMag &&
-		xLinYLogErrorMag < xLogYLogErrorMag)
+	else if (xLinYLogError < xLogYLinError &&
+		xLinYLogError < xLogYLogError)
 	{
-		transformationMatrix = xLinYLogPlotTransformation;
+		transformationMatrix = xLinYLogTransformation;
 		xIsLogarithmic = false;
 		yIsLogarithmic = true;
 	}
-	else if (xLogYLinErrorMag < xLogYLogErrorMag)
+	else if (xLogYLinError < xLogYLogError)
 	{
-		transformationMatrix = xLogYLinPlotTransformation;
+		transformationMatrix = xLogYLinTransformation;
 		xIsLogarithmic = true;
 		yIsLogarithmic = false;
 	}
 	else
 	{
-		transformationMatrix = xLogYLogPlotTransformation;
+		transformationMatrix = xLogYLogTransformation;
 		xIsLogarithmic = true;
 		yIsLogarithmic = true;
 	}
@@ -369,30 +279,71 @@ void PointPicker::UpdateTransformation()
 
 //==========================================================================
 // Class:			PointPicker
-// Function:		PseudoInverse
+// Function:		ComputeTransformation
 //
-// Description:		Computes the Moore-Penrose pseudo inverse.
+// Description:		Computes the transformation for the specified correspondances.
 //
 // Input Arguments:
-//		m	= const Eigen::MatrixXd&
+//		paris	= const std::vector<ReferencePair>&
 //
 // Output Arguments:
-//		None
+//		error	= double&
 //
 // Return Value:
-//		Eigen::MatrixXd
+//		Eigen::Matrix3d
 //
 //==========================================================================
-Eigen::MatrixXd PointPicker::PseudoInverse(const Eigen::MatrixXd& m)
+Eigen::Matrix3d PointPicker::ComputeTransformation(
+	const std::vector<ReferencePair>& pairs, double& error)
 {
-	Eigen::JacobiSVD<Eigen::MatrixXd> svd(m, Eigen::ComputeFullU | Eigen::ComputeFullV);
-	// Sometimes we need to pad the singular value matrix with zeros in order to make the dimensions match
-	// Ensure that it would fulfil the requirement to rebuild the original matrix:  m = U * s * V^T
-	Eigen::MatrixXd sInv(Eigen::MatrixXd::Zero(svd.matrixV().rows(), svd.matrixU().rows()));
-	int i;
-	for (i = 0; i < svd.singularValues().count(); i++)
-		sInv(i,i) = 1.0 / svd.singularValues()(i);
-	return svd.matrixV() * sInv * svd.matrixU().transpose();
+	Eigen::Matrix<double, Eigen::Dynamic, 9> model(2 * pairs.size(), 9);
+	/*Eigen::VectorXd imageVector(2 * pairs.size());// For computing error
+	Eigen::VectorXd valueVector(2 * pairs.size());// For computing error*/
+
+	// Set up columns that will all have the same value
+	model.block(0,2,pairs.size(),1).setOnes();
+	model.block(0,3,pairs.size(),3).setZero();
+	model.block(pairs.size(),0,pairs.size(),3).setZero();
+	model.block(pairs.size(),5,pairs.size(),1).setOnes();
+
+	unsigned int i;
+	for (i = 0; i < pairs.size(); i++)
+	{
+		// X-ordinate
+		model(i,0) = pairs[i].imageCoords.x;
+		model(i,1) = pairs[i].imageCoords.y;
+
+		model(i,6) = -pairs[i].valueCoords.x * pairs[i].imageCoords.x;
+		model(i,7) = -pairs[i].valueCoords.x * pairs[i].imageCoords.y;
+		model(i,8) = -pairs[i].valueCoords.x;
+
+		// Y-ordinate
+		model(i + pairs.size(),3) = pairs[i].imageCoords.x;
+		model(i + pairs.size(),4) = pairs[i].imageCoords.y;
+
+		model(i + pairs.size(),6) = -pairs[i].valueCoords.y * pairs[i].imageCoords.x;
+		model(i + pairs.size(),7) = -pairs[i].valueCoords.y * pairs[i].imageCoords.y;
+		model(i + pairs.size(),8) = -pairs[i].valueCoords.y;
+
+		// Values (for computing error)
+		/*imageVector(i) = pairs[i].imageCoords.x;
+		imageVector(i + pairs.size()) = pairs[i].imageCoords.y;
+
+		valueVector(i) = pairs[i].valueCoords.x;
+		valueVector(i + pairs.size()) = pairs[i].valueCoords.y;*/
+	}
+
+	Eigen::JacobiSVD<Eigen::Matrix<double, Eigen::Dynamic, 9> > svd(model, Eigen::ComputeFullV);
+	Eigen::Matrix<double, 9, 1> nullspace(svd.matrixV().col(8));
+	Eigen::Matrix3d transform;
+	transform.row(0) = nullspace.head<3>();
+	transform.row(1) = nullspace.segment<3>(3);
+	transform.row(2) = nullspace.tail<3>();
+
+	Eigen::VectorXd errorVector(model * nullspace);// TODO:  Does this work OK?
+	error = errorVector.dot(errorVector);
+
+	return transform;
 }
 
 //==========================================================================

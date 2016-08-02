@@ -132,7 +132,7 @@ private:
 
 	Point ScalePoint(const Point& imagePointIn) const;
 
-	static Eigen::MatrixXd PseudoInverse(const Eigen::MatrixXd& m);
+	static Eigen::Matrix3d ComputeTransformation(const std::vector<ReferencePair>& pairs, double& error);
 };
 
 #endif// POINT_PICKER_H_
