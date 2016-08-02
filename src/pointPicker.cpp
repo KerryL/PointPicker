@@ -298,8 +298,7 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 		errorString += _T("\nNot enough unique points to estimate X-axis");
 	if (!GetBestFitAxis(yAxisPoints, yInfo))
 		errorString += _T("\nNot enough unique points to estimate Y-axis");
-	if (fabs(xInfo.angle - yInfo.angle) < 0.08)// Difference less than about 5 deg - this is prior to real numerical difficulties would begin
-		errorString += _T("\nX and Y axes are nearly parallel - cannot solve");
+	ValidateAxisInfo(xInfo, yInfo);
 
 	if (!errorString.empty())
 		return std::vector<std::vector<Point> >(0);
@@ -308,6 +307,38 @@ std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 	GetBestAxisScale(yAxisPoints, yInfo);
 
 	return ScaleCurvePoints(xInfo, yInfo);
+}
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		ValidateAxisInfo
+//
+// Description:		Checks axes to ensure data is valid.
+//
+// Input Arguments:
+//		info1	= const AxisInfo&
+//		info2	= const AxisInfo&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void PointPicker::ValidateAxisInfo(const AxisInfo& info1, const AxisInfo& info2) const
+{
+	// Check magnitude of cross product of the direction vectors to ensure vectors
+	// are not parallel.  Threshold is the magnitude corresponding to a 5 deg angle
+	// between the vectors.  This is well before the real numerical difficulties
+	// would begin.
+	const double threshold(sin(5.0 * M_PI / 180.0));
+	const double nx1(cos(info1.angle));
+	const double ny1(sin(info1.angle));
+	const double nx2(cos(info2.angle));
+	const double ny2(sin(info2.angle));
+	if (fabs(nx1 * ny2 - ny1 * nx2) < threshold)
+		errorString += _T("\nX and Y axes are nearly parallel - cannot solve");
 }
 
 //==========================================================================
@@ -345,8 +376,7 @@ PointPicker::Point PointPicker::ScaleSinglePoint(const double& rawX, const doubl
 		errorString += _T("\nNot enough unique points to estimate X-axis");
 	if (!GetBestFitAxis(yAxisPoints, yInfo))
 		errorString += _T("\nNot enough unique points to estimate Y-axis");
-	if (fabs(xInfo.angle - yInfo.angle) < 0.08)// Difference less than about 5 deg - this is prior to real numerical difficulties would begin
-		errorString += _T("\nX and Y axes are nearly parallel - cannot solve");
+	ValidateAxisInfo(xInfo, yInfo);
 
 	if (!errorString.empty())
 		return Point(0.0, 0.0);

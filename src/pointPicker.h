@@ -112,6 +112,8 @@ private:
 	std::vector<std::vector<Point> > ScaleCurvePoints(const AxisInfo& xInfo, const AxisInfo& yInfo) const;
 	static Point ScaleSinglePoint(const AxisInfo& xInfo, const AxisInfo& yInfo, const Point& point);
 
+	void ValidateAxisInfo(const AxisInfo& info1, const AxisInfo& info2) const;
+
 	static double DoLinearCalculation(const double& nx, const double& ny,
 		const Point& p, const double& zero);
 	static double DoLogarithmicCalculation(const double& nx, const double& ny,
