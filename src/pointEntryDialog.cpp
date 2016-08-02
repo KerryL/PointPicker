@@ -44,7 +44,9 @@ void PointEntryDialog::CreateControls()
 	inputSizer->AddGrowableCol(3);
 
 	mainSizer->AddSpacer(15);
-	mainSizer->Add(CreateButtonSizer(wxOK | wxCANCEL), 0, wxALIGN_RIGHT);
+	mainSizer->Add(CreateButtonSizer(wxOK | wxCANCEL | wxOK_DEFAULT), 0, wxALIGN_RIGHT);
+
+	xValue->SetFocus();
 
 	SetSizerAndFit(topSizer);
 }

@@ -10,13 +10,22 @@
 
 // wxWidgets headers
 #include <wx/clipbrd.h>
-#include <wx/textdlg.h>
 
 // Eigen headers
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4018)// signed/unsigned mismatch
+#pragma warning(disable:4456)// declaration hides previous local declaration
+#pragma warning(disable:4714)// function marked as __forceinline not inlined
+#endif
 #include <Eigen/Dense>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 // Local headers
 #include "pointPicker.h"
+#include "pointEntryDialog.h"
 
 //==========================================================================
 // Class:			PointPicker
@@ -39,6 +48,7 @@ PointPicker::PointPicker()
 	clipMode = ClipNone;
 	dataMode = DataNone;
 	curveIndex = 0;
+	ResetErrorString();
 }
 
 //==========================================================================
@@ -140,25 +150,86 @@ void PointPicker::HandleDataMode(const double& x, const double& y)
 		return;
 	}
 
-	double tickValue;
-	wxString valueString;
-	int result(0);
-	while (result != wxID_CANCEL)
+	PointEntryDialog dialog(NULL, wxID_ANY, _T("Coordinate Input"));
+	if (dialog.ShowModal() == wxID_CANCEL)
+		return;
+
+	if (dataMode == DataReferences)
 	{
-		wxTextEntryDialog dialog(NULL, _T("Specify axis value:"), _T("Axis Value Input"), valueString);
-		result = dialog.ShowModal();
-		if (result == wxID_OK)
-		{
-			valueString = dialog.GetValue();
-			if (valueString.ToDouble(&tickValue))
-				break;
-		}
+		referencePoints.push_back(ReferencePair(Point(x, y), dialog.GetPoint()));
+		UpdateTransformation();
+	}
+}
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		UpdateTransformation
+//
+// Description:		Updates the transformation matrix according to all stored
+//					reference points.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void PointPicker::UpdateTransformation()
+{
+	if (referencePoints.size() < 4)
+	{
+		ResetErrorString();
+		return;
+	}
+	else
+		errorString.clear();
+
+	// Find the matrices that map source image points (in pixels) to basis
+	// vectors (sourceTransformation) and plot points (in user-specified
+	// values) to basis vectors (plotTransformation)
+	Eigen::MatrixXd sourceTransformation(3, referencePoints.size() - 1);
+	Eigen::MatrixXd plotTransformation(3, referencePoints.size() - 1);
+	Eigen::Vector3d sourceKnowns, plotKnowns;
+
+	unsigned int i;
+	for (i = 0; i < referencePoints.size() - 1; i++)
+	{
+		sourceTransformation(0, i) = referencePoints[i].imageCoords.x;
+		sourceTransformation(1, i) = referencePoints[i].imageCoords.y;
+		sourceTransformation(2, i) = 1.0;
+
+		// TODO:  Need to handle log values, too, and combinations of x log, y lin, etc.
+		plotTransformation(0, i) = referencePoints[i].valueCoords.x;
+		plotTransformation(1, i) = referencePoints[i].valueCoords.y;
+		plotTransformation(2, i) = 1.0;
 	}
 
-	if (dataMode == DataXAxis)
-		xAxisPoints.push_back(Point(x, y, tickValue));
-	else// if (dataMode == DataYAxis)
-		yAxisPoints.push_back(Point(x, y, tickValue));
+	sourceKnowns(0) = referencePoints.back().imageCoords.x;
+	sourceKnowns(1) = referencePoints.back().imageCoords.y;
+	sourceKnowns(2) = 1.0;
+
+	plotKnowns(0) = referencePoints.back().valueCoords.x;
+	plotKnowns(1) = referencePoints.back().valueCoords.y;
+	plotKnowns(2) = 1.0;
+
+	Eigen::Vector3d sourceScaleVector(sourceTransformation.jacobiSvd(
+		Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sourceKnowns));
+	Eigen::Vector3d plotScaleVector(plotTransformation.jacobiSvd(
+		Eigen::ComputeThinU | Eigen::ComputeThinV).solve(plotKnowns));
+
+	for (i = 0; i < (unsigned int)sourceTransformation.cols(); i++)
+	{
+		sourceTransformation.col(i) *= sourceScaleVector(i);
+		plotTransformation.col(i) *= plotScaleVector(i);
+	}
+
+	transformationMatrix = plotTransformation * sourceTransformation.inverse();
+
+	// TODO:  Check for ill conditioned matrixes (i.e. if all points specified are on a line?)
 }
 
 //==========================================================================
@@ -187,30 +258,9 @@ double PointPicker::ScaleOrdinate(const double& value, const double& scale,
 
 //==========================================================================
 // Class:			PointPicker
-// Function:		ResetXAxis
+// Function:		ResetReferences
 //
-// Description:		Resets the stored x-axis data.
-//
-// Input Arguments:
-//		None
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		None
-//
-//==========================================================================
-void PointPicker::ResetXAxis()
-{
-	xAxisPoints.clear();
-}
-
-//==========================================================================
-// Class:			PointPicker
-// Function:		ResetYAxis
-//
-// Description:		Resets the stored y-axis data.
+// Description:		Resets the stored reference data.
 //
 // Input Arguments:
 //		None
@@ -222,14 +272,15 @@ void PointPicker::ResetXAxis()
 //		None
 //
 //==========================================================================
-void PointPicker::ResetYAxis()
+void PointPicker::ResetReferences()
 {
-	yAxisPoints.clear();
+	referencePoints.clear();
+	ResetErrorString();
 }
 
 //==========================================================================
 // Class:			PointPicker
-// Function:		ResetXAxis
+// Function:		ResetCurveData
 //
 // Description:		Resets the stored curve data.
 //
@@ -266,8 +317,7 @@ void PointPicker::ResetCurveData(const unsigned int& curve)
 //==========================================================================
 void PointPicker::Reset()
 {
-	ResetXAxis();
-	ResetYAxis();
+	ResetReferences();
 
 	curvePoints.clear();
 	curveIndex = 0;
@@ -291,54 +341,50 @@ void PointPicker::Reset()
 //==========================================================================
 std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
 {
-	errorString.clear();
-
-	AxisInfo xInfo, yInfo;
-	if (!GetBestFitAxis(xAxisPoints, xInfo))
-		errorString += _T("\nNot enough unique points to estimate X-axis");
-	if (!GetBestFitAxis(yAxisPoints, yInfo))
-		errorString += _T("\nNot enough unique points to estimate Y-axis");
-	ValidateAxisInfo(xInfo, yInfo);
-
 	if (!errorString.empty())
 		return std::vector<std::vector<Point> >(0);
 
-	GetBestAxisScale(xAxisPoints, xInfo);
-	GetBestAxisScale(yAxisPoints, yInfo);
+	std::vector<std::vector<Point> > data(curvePoints);
+	unsigned int i, j;
+	for (i = 0; i < curvePoints.size(); i++)
+	{
+		for (j = 0; j < curvePoints[i].size(); j++)
+			data[i][j] = ScalePoint(curvePoints[i][j]);
+	}
 
-	return ScaleCurvePoints(xInfo, yInfo);
+	return data;
 }
 
 //==========================================================================
 // Class:			PointPicker
-// Function:		ValidateAxisInfo
+// Function:		ScalePoint
 //
-// Description:		Checks axes to ensure data is valid.
+// Description:		Converts the specified point from image to plot coordinates.
 //
 // Input Arguments:
-//		info1	= const AxisInfo&
-//		info2	= const AxisInfo&
+//		imagePointIn	= const Point&
 //
 // Output Arguments:
 //		None
 //
 // Return Value:
-//		None
+//		PointPicker::Point
 //
 //==========================================================================
-void PointPicker::ValidateAxisInfo(const AxisInfo& info1, const AxisInfo& info2) const
+PointPicker::Point PointPicker::ScalePoint(const Point& imagePointIn) const
 {
-	// Check magnitude of cross product of the direction vectors to ensure vectors
-	// are not parallel.  Threshold is the magnitude corresponding to a 5 deg angle
-	// between the vectors.  This is well before the real numerical difficulties
-	// would begin.
-	const double threshold(sin(5.0 * M_PI / 180.0));
-	const double nx1(cos(info1.angle));
-	const double ny1(sin(info1.angle));
-	const double nx2(cos(info2.angle));
-	const double ny2(sin(info2.angle));
-	if (fabs(nx1 * ny2 - ny1 * nx2) < threshold)
-		errorString += _T("\nX and Y axes are nearly parallel - cannot solve");
+	Eigen::Vector3d imagePoint(imagePointIn.x, imagePointIn.y, 1.0);
+	Eigen::Vector3d plotPoint(transformationMatrix * imagePoint);
+
+	Point p(plotPoint(0) / plotPoint(2), plotPoint(1) / plotPoint(2));
+
+	if (false)// TODO:  If x axis is log
+		p.x = pow(10.0, p.x);
+
+	if (false)// TODO:  If y axis is log
+		p.y = pow(10.0, p.y);
+
+	return p;
 }
 
 //==========================================================================
@@ -369,223 +415,21 @@ PointPicker::Point PointPicker::ScaleSinglePoint(const double& rawX, const doubl
 {
 	x = ScaleOrdinate(rawX, xScale, xOffset);
 	y = ScaleOrdinate(rawY, yScale, yOffset);
-	errorString.clear();
-
-	AxisInfo xInfo, yInfo;
-	if (!GetBestFitAxis(xAxisPoints, xInfo))
-		errorString += _T("\nNot enough unique points to estimate X-axis");
-	if (!GetBestFitAxis(yAxisPoints, yInfo))
-		errorString += _T("\nNot enough unique points to estimate Y-axis");
-	ValidateAxisInfo(xInfo, yInfo);
 
 	if (!errorString.empty())
 		return Point(0.0, 0.0);
 
-	GetBestAxisScale(xAxisPoints, xInfo);
-	GetBestAxisScale(yAxisPoints, yInfo);
-
-	return ScaleSinglePoint(xInfo, yInfo, Point(x, y));
+	return ScalePoint(Point(x, y));
 }
 
 //==========================================================================
 // Class:			PointPicker
-// Function:		GetBestFitAxis
+// Function:		ResetErrorString
 //
-// Description:		Computes best fit line for specified axis data.
-//
-// Input Arguments:
-//		points	= const std::vector<Point>&
-//
-// Output Arguments:
-//		info	= AxisInfo&
-//
-// Return Value:
-//		bool
-//
-//==========================================================================
-bool PointPicker::GetBestFitAxis(const std::vector<Point>& points, AxisInfo& info)
-{
-	if (points.size() < 2)
-		return false;
-
-	Eigen::MatrixXd x(points.size(), 2);
-	Eigen::VectorXd y(points.size());
-
-	// To ensure the matrices we are using have good condition numbers, find the
-	// ordinate with the largest range (i.e. are we solving for x-axis or y-axis?)
-	double xMin(points[0].x);
-	double xMax(points[0].x);
-	double yMin(points[0].y);
-	double yMax(points[0].y);
-	unsigned int i;
-	for (i = 1; i < points.size(); i++)
-	{
-		if (points[i].x < xMin)
-			xMin = points[i].x;
-		else if (points[i].x > xMax)
-			xMax = points[i].x;
-
-		if (points[i].y < yMin)
-			yMin = points[i].y;
-		else if (points[i].y > yMax)
-			yMax = points[i].y;
-	}
-
-	bool invertSlope = fabs(xMax - xMin) < fabs(yMax - yMin);
-
-	for (i = 0; i < points.size(); i++)
-	{
-		if (invertSlope)
-		{
-			x(i,0) = points[i].y;
-			y(i) = points[i].x;
-		}
-		else
-		{
-			x(i,0) = points[i].x;
-			y(i) = points[i].y;
-		}
-		x(i,1) = 1.0;
-	}
-
-	Eigen::VectorXd coefficients(x.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(y));
-	if (invertSlope)
-	{
-		info.angle = atan(1.0 / coefficients(0));
-		info.intercept.x = coefficients(1);
-		info.intercept.y = 0.0;
-	}
-	else
-	{
-		info.angle = atan(coefficients(0));
-		info.intercept.x = 0.0;
-		info.intercept.y = coefficients(1);
-	}
-
-	return true;
-}
-
-//==========================================================================
-// Class:			PointPicker
-// Function:		GetBestAxisScale
-//
-// Description:		Finds axis scaling based on best fit line and user-specified
-//					tick values.
+// Description:		Resets the error string.
 //
 // Input Arguments:
-//		points	= const std::vector<Point>&
-//
-// Output Arguments:
-//		info	= AxisInfo&
-//
-// Return Value:
 //		None
-//
-//==========================================================================
-void PointPicker::GetBestAxisScale(const std::vector<Point>& points, AxisInfo& info)
-{
-	// Find points on best-fit line closest to user-input points
-	Eigen::MatrixXd model(points.size(), 2);
-	Eigen::VectorXd linearValues(points.size());
-	Eigen::VectorXd logarithmicValues(points.size());
-
-	Point nearest;
-	const double dx(cos(info.angle));
-	const double dy(sin(info.angle));
-	double distance;
-	bool logIsOption(points[0].aux > 0.0);
-	unsigned int i;
-	for (i = 0; i < points.size(); i++)
-	{
-		nearest = GetNearestPoint(points[i], info);
-		distance = (nearest.x - info.intercept.x) * dx + (nearest.y - info.intercept.y) * dy;
-		model(i, 0) = distance;
-
-		model(i, 1) = 1.0;
-		linearValues(i) = points[i].aux;
-		logarithmicValues(i) = log10(points[i].aux);
-		if (points[i].aux <= 0.0)
-			logIsOption = false;
-	}
-
-	// Perform regressions for both linear and logarithmic models
-	Eigen::VectorXd linearCoefficients(model.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(linearValues));
-	Eigen::VectorXd logarithmicCoefficients(model.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(logarithmicValues));
-
-	// Choose result based on lowest error
-	Eigen::VectorXd linearError(model * linearCoefficients - linearValues);
-	Eigen::VectorXd logarithmicError(model * logarithmicCoefficients - logarithmicValues);
-	if (linearError.dot(linearError) < logarithmicError.dot(logarithmicError) || !logIsOption)
-	{
-		info.isLogarithmic = false;
-		info.scale = linearCoefficients(0);
-		info.zero = linearCoefficients(1);
-	}
-	else
-	{
-		info.isLogarithmic = true;
-		info.scale = logarithmicCoefficients(0);
-		info.zero = logarithmicCoefficients(1);
-	}
-}
-
-//==========================================================================
-// Class:			PointPicker
-// Function:		GetNearestPoint
-//
-// Description:		Returns the point on the line closest to the specified point.
-//					Implementation is based on find the intersection of two
-//					parametric lines given a point on the line and a direction
-//					vector.  The point on the axis is the intercept point and
-//					the point on the perpendicular line is the argument "point."
-//					The slope of the second line is perpendicular to the axis
-//					(to ensure minimum distance from point to axis), so we only
-//					need one value of nx and ny to define both lines.
-//
-// Input Arguments:
-//		point	= const Point&
-//		info	= AxisInfo&
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		Point
-//
-//==========================================================================
-PointPicker::Point PointPicker::GetNearestPoint(const Point& point, const AxisInfo& info)
-{
-	Point p;
-	double t;
-	const double nx(cos(info.angle));
-	const double ny(sin(info.angle));
-	if (fabs(nx) > fabs(ny))
-	{
-		t = (info.intercept.y - point.y - ny / nx * (info.intercept.x - point.x))
-			/ (nx + ny * ny / nx);
-		p.x = point.x - t * ny;
-		p.y = point.y + t * nx;
-	}
-	else
-	{
-		t = (point.y - info.intercept.y - nx / ny * (point.x - info.intercept.x))
-			/ (ny + nx * nx / ny);
-		p.x = info.intercept.x + t * nx;
-		p.y = info.intercept.y + t * ny;
-	}
-
-	return p;
-}
-
-//==========================================================================
-// Class:			PointPicker
-// Function:		GetCurveData
-//
-// Description:		Returns processed curve data.
-//
-// Input Arguments:
-//		xInfo	= const AxisInfo&
-//		yInfo	= const AxisInfo&
 //
 // Output Arguments:
 //		None
@@ -594,136 +438,7 @@ PointPicker::Point PointPicker::GetNearestPoint(const Point& point, const AxisIn
 //		None
 //
 //==========================================================================
-std::vector<std::vector<PointPicker::Point> > PointPicker::ScaleCurvePoints(
-	const AxisInfo& xInfo, const AxisInfo& yInfo) const
+void PointPicker::ResetErrorString() const
 {
-	// The two axes form a basis for the plot space.  So both the x and y
-	// components of a point contribute to both the x and y values of the
-	// scaled point.
-	const double nxX(cos(xInfo.angle) * xInfo.scale);
-	const double nyX(sin(xInfo.angle) * xInfo.scale);
-	const double nxY(cos(yInfo.angle) * yInfo.scale);
-	const double nyY(sin(yInfo.angle) * yInfo.scale);
-
-	std::vector<std::vector<Point> > scaledCurves(curvePoints);
-	unsigned int i, j;
-	for (i = 0; i < scaledCurves.size(); i++)
-	{
-		if (xInfo.isLogarithmic)
-		{
-			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].x = DoLogarithmicCalculation(nxX, nyX, scaledCurves[i][j], xInfo.zero);
-		}
-		else
-		{
-			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].x = DoLinearCalculation(nxX, nyX, scaledCurves[i][j], xInfo.zero);
-		}
-
-		if (yInfo.isLogarithmic)
-		{
-			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].y = DoLogarithmicCalculation(nxY, nyY, scaledCurves[i][j], yInfo.zero);
-		}
-		else
-		{
-			for (j = 0; j < scaledCurves[i].size(); j++)
-				scaledCurves[i][j].y = DoLinearCalculation(nxY, nyY, scaledCurves[i][j], yInfo.zero);
-		}
-	}
-
-	return scaledCurves;
-}
-
-//==========================================================================
-// Class:			PointPicker
-// Function:		ScaleSinglePoint
-//
-// Description:		Returns the scaled coordinates for the specified point.
-//
-// Input Arguments:
-//		xInfo	= const AxisInfo&
-//		yInfo	= const AxisInfo&
-//		point	= const Point&
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		Point
-//
-//==========================================================================
-PointPicker::Point PointPicker::ScaleSinglePoint(const AxisInfo& xInfo,
-	const AxisInfo& yInfo, const Point& point)
-{
-	// The two axes form a basis for the plot space.  So both the x and y
-	// components of a point contribute to both the x and y values of the
-	// scaled point.
-	const double nxX(cos(xInfo.angle) * xInfo.scale);
-	const double nyX(sin(xInfo.angle) * xInfo.scale);
-	const double nxY(cos(yInfo.angle) * yInfo.scale);
-	const double nyY(sin(yInfo.angle) * yInfo.scale);
-
-	Point p;
-	if (xInfo.isLogarithmic)
-		p.x = DoLogarithmicCalculation(nxX, nyX, point, xInfo.zero);
-	else
-		p.x = DoLinearCalculation(nxX, nyX, point, xInfo.zero);
-
-	if (yInfo.isLogarithmic)
-		p.y = DoLogarithmicCalculation(nxY, nyY, point, yInfo.zero);
-	else
-		p.y = DoLinearCalculation(nxY, nyY, point, yInfo.zero);
-
-	return p;
-}
-
-//==========================================================================
-// Class:			PointPicker
-// Function:		DoLinearCalculation
-//
-// Description:		Returns the scaled ordinate for the specified values.
-//
-// Input Arguments:
-//		nx		= const double&
-//		ny		= const double&
-//		p		= const Point&
-//		zero	= const double&
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		double
-//
-//==========================================================================
-double PointPicker::DoLinearCalculation(const double& nx, const double& ny,
-	const Point& p, const double& zero)
-{
-	return p.x * nx + p.y * ny + zero;
-}
-
-//==========================================================================
-// Class:			PointPicker
-// Function:		DoLogarithmicCalculation
-//
-// Description:		Returns the scaled ordinate for the specified values.
-//
-// Input Arguments:
-//		nx		= const double&
-//		ny		= const double&
-//		p		= const Point&
-//		zero	= const double&
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		double
-//
-//==========================================================================
-double PointPicker::DoLogarithmicCalculation(const double& nx, const double& ny,
-	const Point& p, const double& zero)
-{
-	return pow(10.0, p.x * nx + p.y * ny + zero);
+	errorString = _T("Not enough reference points");
 }

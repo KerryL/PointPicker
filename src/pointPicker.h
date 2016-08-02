@@ -12,6 +12,18 @@
 // wxWidgets headers
 #include <wx/wx.h>
 
+// Eigen headers
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4018)// signed/unsigned mismatch
+#pragma warning(disable:4456)// declaration hides previous local declaration
+#pragma warning(disable:4714)// function marked as __forceinline not inlined
+#endif
+#include <Eigen/Eigen>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 class PointPicker
 {
 public:
@@ -32,8 +44,7 @@ public:
 	enum DataExtractionMode
 	{
 		DataNone,
-		DataXAxis,
-		DataYAxis,
+		DataReferences,
 		DataCurve
 	};
 
@@ -44,8 +55,7 @@ public:
 	DataExtractionMode GetDataExtractionMode() const { return dataMode; }
 	unsigned int GetCurveIndex() const { return curveIndex; }
 
-	void ResetXAxis();
-	void ResetYAxis();
+	void ResetReferences();
 	void ResetCurveData(const unsigned int& curve);
 	void Reset();
 
@@ -59,14 +69,18 @@ public:
 			y = yIn;
 		}
 
-		Point(const double& xIn, const double& yIn, const double& auxIn)
-		{
-			x = xIn;
-			y = yIn;
-			aux = auxIn;
-		}
+		double x, y;
 
-		double x, y, aux;
+		Point& operator=(const Point& p)
+		{
+			if (&p == this)
+				return *this;
+
+			x = p.x;
+			y = p.y;
+
+			return *this;
+		}
 	};
 
 	Point GetNewestPoint() const { return lastPoint; }
@@ -87,37 +101,33 @@ private:
 	unsigned int curveIndex;
 
 	mutable wxString errorString;
+	void ResetErrorString() const;
 
-	std::vector<Point> xAxisPoints;
-	std::vector<Point> yAxisPoints;
+	struct ReferencePair
+	{
+		ReferencePair() {}
+		ReferencePair(const Point& i, const Point& v)
+		{
+			imageCoords = i;
+			valueCoords = v;
+		}
+
+		Point imageCoords;
+		Point valueCoords;
+	};
+
+	std::vector<ReferencePair> referencePoints;
 	std::vector<std::vector<Point> > curvePoints;
 
 	Point lastPoint;
 
 	void HandleClipboardMode(const double& x, const double& y) const;
 	void HandleDataMode(const double& x, const double& y);
+	void UpdateTransformation();
 
-	struct AxisInfo
-	{
-		double angle;// [rad from horizontal]
-		Point intercept;
-		bool isLogarithmic;
-		double scale;// [units/px]
-		double zero;
-	};
+	Eigen::MatrixXd transformationMatrix;
 
-	static bool GetBestFitAxis(const std::vector<Point>& points, AxisInfo& info);
-	static void GetBestAxisScale(const std::vector<Point>& points, AxisInfo& info);
-	static Point GetNearestPoint(const Point& point, const AxisInfo& info);
-	std::vector<std::vector<Point> > ScaleCurvePoints(const AxisInfo& xInfo, const AxisInfo& yInfo) const;
-	static Point ScaleSinglePoint(const AxisInfo& xInfo, const AxisInfo& yInfo, const Point& point);
-
-	void ValidateAxisInfo(const AxisInfo& info1, const AxisInfo& info2) const;
-
-	static double DoLinearCalculation(const double& nx, const double& ny,
-		const Point& p, const double& zero);
-	static double DoLogarithmicCalculation(const double& nx, const double& ny,
-		const Point& p, const double& zero);
+	Point ScalePoint(const Point& imagePointIn) const;
 };
 
 #endif// POINT_PICKER_H_
