@@ -141,7 +141,11 @@ void ControlsFrame::CreateControls()
 	grid->SetCellSize(0, 0, 1, 2);
 	grid->SetColLabelSize(0);
 	grid->SetRowLabelSize(0);
+#ifdef __WXMSW__
 	grid->SetMinSize(wxSize(-1, 200));
+#else
+	grid->SetMinSize(wxSize(450, 200));
+#endif
 	grid->EndBatch();
 
 	plotDataGroup->Add(grid, 1, wxGROW);
@@ -229,7 +233,7 @@ wxStatusBar* ControlsFrame::BuildStatusBar()
 	sb->SetStatusText(PointPickerApp::versionString + _T(" (")
 		+ PointPickerApp::gitHash + _T(")"), StatusVersionInfo);
 
-	// TODO:  Better way to handle width calculation?  Does this look OK across platforms?
+#ifdef __WXMSW__
 	const int widths[] =
 	{
 		20,		// StatusRawLabel
@@ -238,6 +242,16 @@ wxStatusBar* ControlsFrame::BuildStatusBar()
 		-2,		// StatusProcessed
 		75		// StatusVersionInfo
 	};
+#else
+	const int widths[] =
+	{
+		40,		// StatusRawLabel
+		-1,		// StatusRaw
+		40,		// StatusProcessedLabel
+		-2,		// StatusProcessed
+		135		// StatusVersionInfo
+	};
+#endif
 	sb->SetStatusWidths(StatusFieldCount, widths);
 
 	return sb;
