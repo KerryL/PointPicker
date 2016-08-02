@@ -30,11 +30,11 @@ release: $(TARGET)
 
 $(TARGET_D): $(OBJS_D)
 	$(MKDIR) $(BINDIR)
-	$(CC) $(OBJS_D) $(LDFLAGS) -o $(BINDIR)$@
+	$(CC) $(TEMP_OBJS_D) $(LDFLAGS) -o $(BINDIR)$@
 
 $(TARGET): $(OBJS)
 	$(MKDIR) $(BINDIR)
-	$(CC) $(OBJS) $(LDFLAGS) -o $(BINDIR)$@
+	$(CC) $(TEMP_OBJS) $(LDFLAGS) -o $(BINDIR)$@
 
 $(OBJDIR_DBG)%.o: %.cpp version_dbg
 	$(MKDIR) $(dir $@)
