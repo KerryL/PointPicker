@@ -18,13 +18,13 @@
 
 // *nix Icons
 #ifdef __WXGTK__
-#include "../../res/icons/pp16.xpm"
-#include "../../res/icons/pp24.xpm"
-#include "../../res/icons/pp32.xpm"
-#include "../../res/icons/pp48.xpm"
-#include "../../res/icons/pp64.xpm"
-#include "../../res/icons/pp128.xpm"
-#include "../../res/icons/pp256.xpm"
+#include "../res/icons/pointPicker16.xpm"
+#include "../res/icons/pointPicker24.xpm"
+#include "../res/icons/pointPicker32.xpm"
+#include "../res/icons/pointPicker48.xpm"
+#include "../res/icons/pointPicker64.xpm"
+#include "../res/icons/pointPicker128.xpm"
+#include "../res/icons/pointPicker256.xpm"
 #endif
 
 //==========================================================================
@@ -182,13 +182,13 @@ void ControlsFrame::SetProperties()
 #ifdef __WXMSW__
 	SetIcon(wxIcon(_T("ICON_ID_MAIN"), wxBITMAP_TYPE_ICO_RESOURCE));
 #elif __WXGTK__
-	SetIcon(wxIcon(pp16_xpm));
-	SetIcon(wxIcon(pp24_xpm));
-	SetIcon(wxIcon(pp32_xpm));
-	SetIcon(wxIcon(pp48_xpm));
-	SetIcon(wxIcon(pp64_xpm));
-	SetIcon(wxIcon(pp128_xpm));
-	SetIcon(wxIcon(pp256_xpm));
+	SetIcon(wxIcon(pointPicker16_xpm));
+	SetIcon(wxIcon(pointPicker24_xpm));
+	SetIcon(wxIcon(pointPicker32_xpm));
+	SetIcon(wxIcon(pointPicker48_xpm));
+	SetIcon(wxIcon(pointPicker64_xpm));
+	SetIcon(wxIcon(pointPicker128_xpm));
+	SetIcon(wxIcon(pointPicker256_xpm));
 #endif
 
 	SetDropTarget(dynamic_cast<wxDropTarget*>(new ImageDropTarget(*this)));
