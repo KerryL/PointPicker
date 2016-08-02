@@ -629,7 +629,7 @@ void ControlsFrame::ResetGrid()
 	if (grid->GetNumberCols() > 2)
 		grid->DeleteCols(2, grid->GetNumberCols() - 2);
 	if (grid->GetNumberRows() > 1)
-		grid->DeleteCols(1, grid->GetNumberRows() - 1);
+		grid->DeleteRows(1, grid->GetNumberRows() - 1);
 	grid->SetCellValue(0, 0, wxEmptyString);
 	grid->EndBatch();
 }

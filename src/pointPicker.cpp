@@ -190,8 +190,6 @@ void PointPicker::UpdateTransformation()
 	else
 		errorString.clear();
 
-	// TODO:  Check to make sure points are not co-linear, etc.
-
 	// Use the Direct Linear Transform approach to solve for the unknown
 	// projective transforms.  Solve for the transforms assuming all different
 	// combination of linear and logarithmic scales in order to determine
@@ -297,8 +295,6 @@ Eigen::Matrix3d PointPicker::ComputeTransformation(
 	const std::vector<ReferencePair>& pairs, double& error)
 {
 	Eigen::Matrix<double, Eigen::Dynamic, 9> model(2 * pairs.size(), 9);
-	/*Eigen::VectorXd imageVector(2 * pairs.size());// For computing error
-	Eigen::VectorXd valueVector(2 * pairs.size());// For computing error*/
 
 	// Set up columns that will all have the same value
 	model.block(0,2,pairs.size(),1).setOnes();
@@ -324,13 +320,6 @@ Eigen::Matrix3d PointPicker::ComputeTransformation(
 		model(i + pairs.size(),6) = -pairs[i].valueCoords.y * pairs[i].imageCoords.x;
 		model(i + pairs.size(),7) = -pairs[i].valueCoords.y * pairs[i].imageCoords.y;
 		model(i + pairs.size(),8) = -pairs[i].valueCoords.y;
-
-		// Values (for computing error)
-		/*imageVector(i) = pairs[i].imageCoords.x;
-		imageVector(i + pairs.size()) = pairs[i].imageCoords.y;
-
-		valueVector(i) = pairs[i].valueCoords.x;
-		valueVector(i + pairs.size()) = pairs[i].valueCoords.y;*/
 	}
 
 	Eigen::JacobiSVD<Eigen::Matrix<double, Eigen::Dynamic, 9> > svd(model, Eigen::ComputeFullV);
@@ -340,7 +329,7 @@ Eigen::Matrix3d PointPicker::ComputeTransformation(
 	transform.row(1) = nullspace.segment<3>(3);
 	transform.row(2) = nullspace.tail<3>();
 
-	Eigen::VectorXd errorVector(model * nullspace);// TODO:  Does this work OK?
+	Eigen::VectorXd errorVector(model * nullspace);
 	error = errorVector.dot(errorVector);
 
 	return transform;
