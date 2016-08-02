@@ -170,6 +170,7 @@
     <ClCompile Include="..\src\imageDropTarget.cpp" />
     <ClCompile Include="..\src\imageFrame.cpp" />
     <ClCompile Include="..\src\imageObject.cpp" />
+    <ClCompile Include="..\src\pointEntryDialog.cpp" />
     <ClCompile Include="..\src\pointPicker.cpp" />
     <ClCompile Include="..\src\pointPickerApp.cpp" />
   </ItemGroup>
@@ -178,6 +179,7 @@
     <ClInclude Include="..\src\imageDropTarget.h" />
     <ClInclude Include="..\src\imageFrame.h" />
     <ClInclude Include="..\src\imageObject.h" />
+    <ClInclude Include="..\src\pointEntryDialog.h" />
     <ClInclude Include="..\src\pointPicker.h" />
     <ClInclude Include="..\src\pointPickerApp.h" />
   </ItemGroup>

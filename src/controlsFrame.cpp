@@ -116,24 +116,19 @@ void ControlsFrame::CreateControls()
 
 	plotDataGroup = new wxStaticBoxSizer(wxVERTICAL, panel, _T("Plot Data Extraction"));
 	mainSizer->Add(plotDataGroup, 1, wxGROW);
-	wxFlexGridSizer *plotButtonSizer = new wxFlexGridSizer(3, 4, 5, 5);
-	plotButtonSizer->AddGrowableCol(2);
-	plotDataGroup->Add(plotButtonSizer, 0, wxGROW);
+	wxSizer *plotUpperSizer = new wxBoxSizer(wxHORIZONTAL);
+	wxSizer *radioSizer = new wxBoxSizer(wxVERTICAL);
+	plotDataGroup->Add(plotUpperSizer, 0, wxGROW);
 
-	// Row 1
-	plotButtonSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreXAxis, _T("Points are on x-axis")));
-	plotButtonSizer->Add(new wxButton(plotDataGroup->GetStaticBox(), idResetXAxis, _T("Reset X-Axis")));
-	plotButtonSizer->AddStretchSpacer();
-	plotButtonSizer->Add(new wxButton(plotDataGroup->GetStaticBox(), idSavePlotData, _T("Save Data")));
+	radioSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreReferences, _T("Points are references")));
+	radioSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreCurveData, _T("Points are on curve")));
+	plotUpperSizer->Add(radioSizer);
+	plotUpperSizer->AddSpacer(15);
 
-	// Row 2
-	plotButtonSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreYAxis, _T("Points are on y-axis")));
-	plotButtonSizer->Add(new wxButton(plotDataGroup->GetStaticBox(), idResetYAxis, _T("Reset Y-Axis")));
-	plotButtonSizer->AddStretchSpacer();
-	plotButtonSizer->AddStretchSpacer();
-
-	// Row 3
-	plotButtonSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreCurveData, _T("Points are on curve")));
+	plotUpperSizer->Add(new wxButton(plotDataGroup->GetStaticBox(), idResetReferences, _T("Reset References")));
+	plotUpperSizer->AddStretchSpacer();
+	plotUpperSizer->Add(new wxButton(plotDataGroup->GetStaticBox(), idSavePlotData, _T("Save Data")));
+	plotDataGroup->AddSpacer(15);
 
 	grid = new wxGrid(plotDataGroup->GetStaticBox(), wxID_ANY);
 	grid->BeginBatch();
@@ -152,7 +147,7 @@ void ControlsFrame::CreateControls()
 
 	// Set defaults
 	plotDataGroup->GetStaticBox()->Enable(false);
-	static_cast<wxRadioButton*>(this->FindWindow(idPointsAreXAxis))->SetValue(true);
+	static_cast<wxRadioButton*>(this->FindWindow(idPointsAreReferences))->SetValue(true);
 
 	statusBar = BuildStatusBar();
 	SetStatusBar(statusBar);
@@ -276,11 +271,9 @@ wxStatusBar* ControlsFrame::BuildStatusBar()
 BEGIN_EVENT_TABLE(ControlsFrame, wxFrame)
 	EVT_TOGGLEBUTTON(idCopyToClipboard, ControlsFrame::CopyToClipboardToggle)
 	EVT_TOGGLEBUTTON(idExtractPlotData, ControlsFrame::ExtractPlotDataToggle)
-	EVT_BUTTON(idResetXAxis, ControlsFrame::ResetXAxisClicked)
-	EVT_BUTTON(idResetYAxis, ControlsFrame::ResetYAxisClicked)
+	EVT_BUTTON(idResetReferences, ControlsFrame::ResetReferencesClicked)
 	EVT_BUTTON(idSavePlotData, ControlsFrame::SavePlotDataClicked)
-	EVT_RADIOBUTTON(idPointsAreXAxis, ControlsFrame::PointAreXAxisClicked)
-	EVT_RADIOBUTTON(idPointsAreYAxis, ControlsFrame::PointAreYAxisClicked)
+	EVT_RADIOBUTTON(idPointsAreReferences, ControlsFrame::PointAreReferencesClicked)
 	EVT_RADIOBUTTON(idPointsAreCurveData, ControlsFrame::PointAreCurveDataClicked)
 	EVT_ACTIVATE(ControlsFrame::OnActivate)
 	EVT_GRID_CELL_LEFT_CLICK(ControlsFrame::GridClicked)
@@ -332,14 +325,11 @@ void ControlsFrame::ExtractPlotDataToggle(wxCommandEvent& event)
 	plotDataGroup->GetStaticBox()->Enable(event.IsChecked());
 	if (event.IsChecked())
 	{
-		wxRadioButton* xAxis(static_cast<wxRadioButton*>(FindWindowById(idPointsAreXAxis, this)));
-		wxRadioButton* yAxis(static_cast<wxRadioButton*>(FindWindowById(idPointsAreXAxis, this)));
-		assert(xAxis && yAxis);
+		wxRadioButton* references(static_cast<wxRadioButton*>(FindWindowById(idPointsAreReferences, this)));
+		assert(references);
 
-		if (xAxis->GetValue())
-			picker.SetDataExtractionMode(PointPicker::DataXAxis);
-		else if (yAxis->GetValue())
-			picker.SetDataExtractionMode(PointPicker::DataYAxis);
+		if (references->GetValue())
+			picker.SetDataExtractionMode(PointPicker::DataReferences);
 		else
 			picker.SetDataExtractionMode(PointPicker::DataCurve);
 	}
@@ -349,7 +339,7 @@ void ControlsFrame::ExtractPlotDataToggle(wxCommandEvent& event)
 
 //==========================================================================
 // Class:			ControlsFrame
-// Function:		ResetXAxisClicked
+// Function:		ResetReferencesClicked
 //
 // Description:		Handles button click events.
 //
@@ -363,30 +353,9 @@ void ControlsFrame::ExtractPlotDataToggle(wxCommandEvent& event)
 //		None
 //
 //==========================================================================
-void ControlsFrame::ResetXAxisClicked(wxCommandEvent& WXUNUSED(event))
+void ControlsFrame::ResetReferencesClicked(wxCommandEvent& WXUNUSED(event))
 {
-	picker.ResetXAxis();
-}
-
-//==========================================================================
-// Class:			ControlsFrame
-// Function:		ResetYAxisClicked
-//
-// Description:		Handles button click events.
-//
-// Input Arguments:
-//		event	= wxCommandEvent&
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		None
-//
-//==========================================================================
-void ControlsFrame::ResetYAxisClicked(wxCommandEvent& WXUNUSED(event))
-{
-	picker.ResetYAxis();
+	picker.ResetReferences();
 }
 
 //==========================================================================
@@ -471,7 +440,7 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 
 //==========================================================================
 // Class:			ControlsFrame
-// Function:		PointAreXAxisClicked
+// Function:		PointAreReferencesClicked
 //
 // Description:		Handles radio button click events.
 //
@@ -485,30 +454,9 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 //		None
 //
 //==========================================================================
-void ControlsFrame::PointAreXAxisClicked(wxCommandEvent& WXUNUSED(event))
+void ControlsFrame::PointAreReferencesClicked(wxCommandEvent& WXUNUSED(event))
 {
-	picker.SetDataExtractionMode(PointPicker::DataXAxis);
-}
-
-//==========================================================================
-// Class:			ControlsFrame
-// Function:		PointAreYAxisClicked
-//
-// Description:		Handles radio button click events.
-//
-// Input Arguments:
-//		event	= wxCommandEvent&
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		None
-//
-//==========================================================================
-void ControlsFrame::PointAreYAxisClicked(wxCommandEvent& WXUNUSED(event))
-{
-	picker.SetDataExtractionMode(PointPicker::DataYAxis);
+	picker.SetDataExtractionMode(PointPicker::DataReferences);
 }
 
 //==========================================================================

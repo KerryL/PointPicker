@@ -42,22 +42,18 @@ private:
 		idCopyToClipboard = wxID_HIGHEST + 100,
 		idExtractPlotData,
 
-		idResetXAxis,
-		idResetYAxis,
+		idResetReferences,
 		idSavePlotData,
 
-		idPointsAreXAxis,
-		idPointsAreYAxis,
+		idPointsAreReferences,
 		idPointsAreCurveData
 	};
 
 	void CopyToClipboardToggle(wxCommandEvent& event);
 	void ExtractPlotDataToggle(wxCommandEvent& event);
-	void ResetXAxisClicked(wxCommandEvent& event);
-	void ResetYAxisClicked(wxCommandEvent& event);
+	void ResetReferencesClicked(wxCommandEvent& event);
 	void SavePlotDataClicked(wxCommandEvent& event);
-	void PointAreXAxisClicked(wxCommandEvent& event);
-	void PointAreYAxisClicked(wxCommandEvent& event);
+	void PointAreReferencesClicked(wxCommandEvent& event);
 	void PointAreCurveDataClicked(wxCommandEvent& event);
 	void GridClicked(wxGridEvent& event);
 	void OnActivate(wxActivateEvent& event);
