@@ -18,6 +18,7 @@
 #pragma warning(disable:4018)// signed/unsigned mismatch
 #pragma warning(disable:4456)// declaration hides previous local declaration
 #pragma warning(disable:4714)// function marked as __forceinline not inlined
+#pragma warning(disable:4800)// forcing value to bool 'true' or 'false'
 #endif
 #include <Eigen/Eigen>
 #ifdef _MSC_VER
@@ -125,9 +126,13 @@ private:
 	void HandleDataMode(const double& x, const double& y);
 	void UpdateTransformation();
 
-	Eigen::MatrixXd transformationMatrix;
+	Eigen::Matrix3d transformationMatrix;
+	bool xIsLogarithmic;
+	bool yIsLogarithmic;
 
 	Point ScalePoint(const Point& imagePointIn) const;
+
+	static Eigen::MatrixXd PseudoInverse(const Eigen::MatrixXd& m);
 };
 
 #endif// POINT_PICKER_H_
