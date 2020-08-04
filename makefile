@@ -23,24 +23,24 @@ VERSION_FILE_OBJ_D = $(OBJDIR_DBG)$(VERSION_FILE:.cpp=.o)
 OBJS = $(filter-out $(VERSION_FILE_OBJ),$(TEMP_OBJS))
 OBJS_D = $(filter-out $(VERSION_FILE_OBJ_D),$(TEMP_OBJS_D))
 
-.PHONY: all clean version_rel version_dbg
+.PHONY: all clean
 
 all: $(TARGET_D)
 release: $(TARGET)
 
-$(TARGET_D): $(OBJS_D)
+$(TARGET_D): $(OBJS_D) version_dbg
 	$(MKDIR) $(BINDIR)
 	$(CC) $(OBJS_D) $(VERSION_FILE_OBJ_D) $(LDFLAGS) -o $(BINDIR)$@
 
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) version_rel
 	$(MKDIR) $(BINDIR)
 	$(CC) $(OBJS) $(VERSION_FILE_OBJ) $(LDFLAGS) -o $(BINDIR)$@
 
-$(OBJDIR_DBG)%.o: %.cpp version_dbg
+$(OBJDIR_DBG)%.o: %.cpp
 	$(MKDIR) $(dir $@)
 	$(CC) $(CFLAGS_D) -c $< -o $@
 
-$(OBJDIR_REL)%.o: %.cpp version_rel
+$(OBJDIR_REL)%.o: %.cpp
 	$(MKDIR) $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
