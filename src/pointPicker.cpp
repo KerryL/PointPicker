@@ -19,6 +19,7 @@
 #pragma warning(disable:4456)// declaration hides previous local declaration
 #pragma warning(disable:4714)// function marked as __forceinline not inlined
 #pragma warning(disable:4800)// forcing value to bool 'true' or 'false'
+#pragma warning(disable:4189)// local variable is initialized but not referenced
 #endif
 #include <Eigen/Dense>
 #ifdef _MSC_VER
@@ -47,8 +48,8 @@
 //==========================================================================
 PointPicker::PointPicker()
 {
-	clipMode = ClipNone;
-	dataMode = DataNone;
+	clipMode = ClipboardMode::None;
+	dataMode = DataExtractionMode::None;
 	curveIndex = 0;
 	ResetErrorString();
 }
@@ -104,13 +105,13 @@ void PointPicker::AddPoint(const double& rawX, const double& rawY,
 //==========================================================================
 void PointPicker::HandleClipboardMode(const double& x, const double& y) const
 {
-	if (clipMode != ClipNone && wxTheClipboard->Open())
+	if (clipMode != ClipboardMode::None && wxTheClipboard->Open())
 	{
-		if (clipMode == ClipX)
+		if (clipMode == ClipboardMode::X)
 			wxTheClipboard->SetData(new wxTextDataObject(wxString::Format(_T("%f"), x)));
-		else if (clipMode == ClipY)
+		else if (clipMode == ClipboardMode::Y)
 			wxTheClipboard->SetData(new wxTextDataObject(wxString::Format(_T("%f"), y)));
-		else if (clipMode == ClipBoth)
+		else if (clipMode == ClipboardMode::Both)
 			wxTheClipboard->SetData(new wxTextDataObject(wxString::Format(_T("%f\t%f"), x, y)));
 		else
 			assert(false);
@@ -138,10 +139,10 @@ void PointPicker::HandleClipboardMode(const double& x, const double& y) const
 //==========================================================================
 void PointPicker::HandleDataMode(const double& x, const double& y)
 {
-	if (dataMode == DataNone)
+	if (dataMode == DataExtractionMode::None)
 		return;
 
-	if (dataMode == DataCurve)
+	if (dataMode == DataExtractionMode::Curve)
 	{
 		while (curvePoints.size() <= curveIndex)
 			curvePoints.push_back(std::vector<Point>(0));
@@ -152,13 +153,14 @@ void PointPicker::HandleDataMode(const double& x, const double& y)
 		return;
 	}
 
-	PointEntryDialog dialog(NULL, wxID_ANY, _T("Coordinate Input"));
+	PointEntryDialog dialog(nullptr, wxID_ANY, _T("Coordinate Input"));
 	if (dialog.ShowModal() == wxID_CANCEL)
 		return;
 
-	if (dataMode == DataReferences)
+	if (dataMode == DataExtractionMode::References)
 	{
-		referencePoints.push_back(ReferencePair(Point(x, y), dialog.GetPoint()));
+		lastPoint = dialog.GetPoint();
+		referencePoints.push_back(ReferencePair(Point(x, y), lastPoint));
 		UpdateTransformation();
 	}
 }
@@ -208,11 +210,10 @@ void PointPicker::UpdateTransformation()
 	std::vector<ReferencePair> xLogYLinReferencePoints(referencePoints);
 	std::vector<ReferencePair> xLogYLogReferencePoints(referencePoints);
 
-	bool xLogIsOption(true);
-	bool yLogIsOption(true);
+	bool xLogIsOption(xAxisScale == AxisScale::Logarithmic || xAxisScale == AxisScale::Auto);
+	bool yLogIsOption(yAxisScale == AxisScale::Logarithmic || yAxisScale == AxisScale::Auto);
 
-	unsigned int i;
-	for (i = 0; i < referencePoints.size(); i++)
+	for (unsigned int i = 0; i < referencePoints.size(); i++)
 	{
 		if (referencePoints[i].valueCoords.x <= 0.0)
 			xLogIsOption = false;
@@ -226,6 +227,13 @@ void PointPicker::UpdateTransformation()
 
 		xLogYLogReferencePoints[i].valueCoords.x = xLogYLinReferencePoints[i].valueCoords.x;
 		xLogYLogReferencePoints[i].valueCoords.y = xLinYLogReferencePoints[i].valueCoords.y;
+	}
+
+	if ((!xLogIsOption && xAxisScale == AxisScale::Logarithmic) ||
+		(!yLogIsOption && yAxisScale == AxisScale::Logarithmic))
+	{
+		errorString = _T("Cannot use logarithmic scaling on axes containing zero or negative values");
+		return;
 	}
 
 	double xLinYLogError(std::numeric_limits<double>::max());
@@ -302,8 +310,7 @@ Eigen::Matrix3d PointPicker::ComputeTransformation(
 	model.block(pairs.size(),0,pairs.size(),3).setZero();
 	model.block(pairs.size(),5,pairs.size(),1).setOnes();
 
-	unsigned int i;
-	for (i = 0; i < pairs.size(); i++)
+	for (unsigned int i = 0; i < pairs.size(); i++)
 	{
 		// X-ordinate
 		model(i,0) = pairs[i].imageCoords.x;
@@ -322,7 +329,7 @@ Eigen::Matrix3d PointPicker::ComputeTransformation(
 		model(i + pairs.size(),8) = -pairs[i].valueCoords.y;
 	}
 
-	Eigen::JacobiSVD<Eigen::Matrix<double, Eigen::Dynamic, 9> > svd(model, Eigen::ComputeFullV);
+	Eigen::JacobiSVD<Eigen::Matrix<double, Eigen::Dynamic, 9>> svd(model, Eigen::ComputeFullV);
 	Eigen::Matrix<double, 9, 1> nullspace(svd.matrixV().col(8));
 	Eigen::Matrix3d transform;
 	transform.row(0) = nullspace.head<3>();
@@ -439,19 +446,18 @@ void PointPicker::Reset()
 //		None
 //
 // Return Value:
-//		std::vector<std::vector<PointPicker::Point> >
+//		std::vector<std::vector<PointPicker::Point>>
 //
 //==========================================================================
-std::vector<std::vector<PointPicker::Point> > PointPicker::GetCurveData() const
+std::vector<std::vector<PointPicker::Point>> PointPicker::GetCurveData() const
 {
 	if (!errorString.empty())
-		return std::vector<std::vector<Point> >(0);
+		return std::vector<std::vector<Point>>(0);
 
-	std::vector<std::vector<Point> > data(curvePoints);
-	unsigned int i, j;
-	for (i = 0; i < curvePoints.size(); i++)
+	std::vector<std::vector<Point>> data(curvePoints);
+	for (unsigned int i = 0; i < curvePoints.size(); i++)
 	{
-		for (j = 0; j < curvePoints[i].size(); j++)
+		for (unsigned int j = 0; j < curvePoints[i].size(); j++)
 			data[i][j] = ScalePoint(curvePoints[i][j]);
 	}
 

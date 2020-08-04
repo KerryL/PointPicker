@@ -34,21 +34,30 @@ public:
 		const double& xScale, const double& yScale,
 		const double& xOffset, const double& yOffset);
 
-	enum ClipboardMode
+	enum class ClipboardMode
 	{
-		ClipNone,
-		ClipX,
-		ClipY,
-		ClipBoth
+		None,
+		X,
+		Y,
+		Both
 	};
 
-	enum DataExtractionMode
+	enum class DataExtractionMode
 	{
-		DataNone,
-		DataReferences,
-		DataCurve
+		None,
+		References,
+		Curve
 	};
 
+	enum class AxisScale
+	{
+		Auto,
+		Linear,
+		Logarithmic
+	};
+
+	void SetXAxisScale(const AxisScale& scale) { xAxisScale = scale; UpdateTransformation(); }
+	void SetYAxisScale(const AxisScale& scale) { yAxisScale = scale; UpdateTransformation(); }
 	void SetClipboardMode(const ClipboardMode& mode) { clipMode = mode; }
 	void SetDataExtractionMode(const DataExtractionMode& mode) { dataMode = mode; }
 	void SetCurveIndex(const unsigned int& curve) { curveIndex = curve; }
@@ -86,7 +95,7 @@ public:
 
 	Point GetNewestPoint() const { return lastPoint; }
 
-	std::vector<std::vector<PointPicker::Point> > GetCurveData() const;
+	std::vector<std::vector<PointPicker::Point>> GetCurveData() const;
 	Point ScaleSinglePoint(const double& rawX, const double& rawY,
 		const double& xScale, const double& yScale,
 		const double& xOffset, const double& yOffset, double& x, double& y) const;
@@ -99,6 +108,8 @@ private:
 
 	ClipboardMode clipMode;
 	DataExtractionMode dataMode;
+	AxisScale xAxisScale = AxisScale::Auto;
+	AxisScale yAxisScale = AxisScale::Auto;
 	unsigned int curveIndex;
 
 	mutable wxString errorString;
@@ -118,7 +129,7 @@ private:
 	};
 
 	std::vector<ReferencePair> referencePoints;
-	std::vector<std::vector<Point> > curvePoints;
+	std::vector<std::vector<Point>> curvePoints;
 
 	Point lastPoint;
 

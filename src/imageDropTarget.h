@@ -9,6 +9,9 @@
 // wxWidgets headers
 #include <wx/dnd.h>
 
+// Standard C++ headers
+#include <memory>
+
 // Local forward declarations
 class ControlsFrame;
 
@@ -16,7 +19,6 @@ class ImageDropTarget : public wxDropTarget
 {
 public:
 	ImageDropTarget(ControlsFrame &mainFrame);
-	virtual ~ImageDropTarget();
 
 	virtual wxDragResult OnData(wxCoord x, wxCoord y, wxDragResult def);
 
@@ -25,9 +27,7 @@ private:
 
 	bool OnDropFiles(const wxArrayString &filenames);
 
-	char *buffer;
-
-	void ClearBuffer();
+	std::unique_ptr<char[]> buffer;
 };
 
 #endif// IMAGE_DROP_TARGET_H_

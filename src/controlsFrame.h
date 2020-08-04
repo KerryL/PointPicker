@@ -41,6 +41,8 @@ private:
 	{
 		idCopyToClipboard = wxID_HIGHEST + 100,
 		idExtractPlotData,
+		idXScaleType,
+		idYScaleType,
 
 		idResetReferences,
 		idSavePlotData,
@@ -57,10 +59,14 @@ private:
 	void PointAreCurveDataClicked(wxCommandEvent& event);
 	void GridClicked(wxGridEvent& event);
 	void OnActivate(wxActivateEvent& event);
+	void OnXScaleTypeChange(wxCommandEvent& event);
+	void OnYScaleTypeChange(wxCommandEvent& event);
 
 	wxStaticBoxSizer* plotDataGroup;
 	wxGrid* grid;
 	wxStatusBar* statusBar;
+	wxRadioButton *xScaleAuto, *xScaleLinear, *xScaleLog;
+	wxRadioButton *yScaleAuto, *yScaleLinear, *yScaleLog;
 
 	ImageFrame* imageFrame;
 

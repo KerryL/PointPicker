@@ -44,7 +44,7 @@
 //		None
 //
 //==========================================================================
-ControlsFrame::ControlsFrame() : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaultPosition,
+ControlsFrame::ControlsFrame() : wxFrame(nullptr, wxID_ANY, wxEmptyString, wxDefaultPosition,
 								 wxDefaultSize, wxDEFAULT_FRAME_STYLE)
 {
 	CreateControls();
@@ -101,11 +101,11 @@ void ControlsFrame::CreateControls()
 	wxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
 	wxPanel *panel = new wxPanel(this);
 	wxSizer *panelSizer = new wxBoxSizer(wxVERTICAL);
-	topSizer->Add(panel,1, wxGROW);
+	topSizer->Add(panel, wxSizerFlags().Expand().Proportion(1));
 	panel->SetSizer(panelSizer);
 
 	wxSizer *mainSizer = new wxBoxSizer(wxVERTICAL);
-	panelSizer->Add(mainSizer, 1, wxALL | wxGROW, 5);
+	panelSizer->Add(mainSizer, wxSizerFlags().Expand().Proportion(1).Border(wxALL, 5));
 
 	wxSizer *modeSizer = new wxBoxSizer(wxHORIZONTAL);
 	modeSizer->Add(new wxToggleButton(panel, idCopyToClipboard, _T("Copy Pixel To Clipboard")), 1);
@@ -116,11 +116,29 @@ void ControlsFrame::CreateControls()
 
 	plotDataGroup = new wxStaticBoxSizer(wxVERTICAL, panel, _T("Plot Data Extraction"));
 	mainSizer->Add(plotDataGroup, 1, wxGROW);
+	wxSizer *axisScaleSizer = new wxFlexGridSizer(4, 5, 5);
 	wxSizer *plotUpperSizer = new wxBoxSizer(wxHORIZONTAL);
 	wxSizer *radioSizer = new wxBoxSizer(wxVERTICAL);
-	plotDataGroup->Add(plotUpperSizer, 0, wxGROW);
+	plotDataGroup->Add(axisScaleSizer, wxSizerFlags().Expand());
+	plotDataGroup->Add(plotUpperSizer, wxSizerFlags().Expand());
 
-	radioSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreReferences, _T("Points are references")));
+	axisScaleSizer->Add(new wxStaticText(plotDataGroup->GetStaticBox(), wxID_ANY, _T("X Scale")));
+	xScaleAuto = new wxRadioButton(plotDataGroup->GetStaticBox(), idXScaleType, _T("Auto"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
+	xScaleLinear = new wxRadioButton(plotDataGroup->GetStaticBox(), idXScaleType, _T("Linear"));
+	xScaleLog = new wxRadioButton(plotDataGroup->GetStaticBox(), idXScaleType, _T("Log"));
+	axisScaleSizer->Add(xScaleAuto);
+	axisScaleSizer->Add(xScaleLinear);
+	axisScaleSizer->Add(xScaleLog);
+
+	axisScaleSizer->Add(new wxStaticText(plotDataGroup->GetStaticBox(), wxID_ANY, _T("Y Scale")));
+	yScaleAuto = new wxRadioButton(plotDataGroup->GetStaticBox(), idYScaleType, _T("Auto"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
+	yScaleLinear = new wxRadioButton(plotDataGroup->GetStaticBox(), idYScaleType, _T("Linear"));
+	yScaleLog = new wxRadioButton(plotDataGroup->GetStaticBox(), idYScaleType, _T("Log"));
+	axisScaleSizer->Add(yScaleAuto);
+	axisScaleSizer->Add(yScaleLinear);
+	axisScaleSizer->Add(yScaleLog);
+
+	radioSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreReferences, _T("Points are references"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP));
 	radioSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreCurveData, _T("Points are on curve")));
 	plotUpperSizer->Add(radioSizer);
 	plotUpperSizer->AddSpacer(15);
@@ -143,7 +161,7 @@ void ControlsFrame::CreateControls()
 #endif
 	grid->EndBatch();
 
-	plotDataGroup->Add(grid, 1, wxGROW);
+	plotDataGroup->Add(grid, wxSizerFlags().Expand().Proportion(1));
 
 	// Set defaults
 	plotDataGroup->GetStaticBox()->Enable(false);
@@ -278,6 +296,8 @@ BEGIN_EVENT_TABLE(ControlsFrame, wxFrame)
 	EVT_ACTIVATE(ControlsFrame::OnActivate)
 	EVT_GRID_CELL_LEFT_CLICK(ControlsFrame::GridClicked)
 	EVT_GRID_SELECT_CELL(ControlsFrame::GridClicked)
+	EVT_RADIOBUTTON(idXScaleType, ControlsFrame::OnXScaleTypeChange)
+	EVT_RADIOBUTTON(idYScaleType, ControlsFrame::OnYScaleTypeChange)
 END_EVENT_TABLE()
 
 //==========================================================================
@@ -299,9 +319,9 @@ END_EVENT_TABLE()
 void ControlsFrame::CopyToClipboardToggle(wxCommandEvent& event)
 {
 	if (event.IsChecked())
-		picker.SetClipboardMode(PointPicker::ClipBoth);
+		picker.SetClipboardMode(PointPicker::ClipboardMode::Both);
 	else
-		picker.SetClipboardMode(PointPicker::ClipNone);
+		picker.SetClipboardMode(PointPicker::ClipboardMode::None);
 }
 
 //==========================================================================
@@ -329,12 +349,12 @@ void ControlsFrame::ExtractPlotDataToggle(wxCommandEvent& event)
 		assert(references);
 
 		if (references->GetValue())
-			picker.SetDataExtractionMode(PointPicker::DataReferences);
+			picker.SetDataExtractionMode(PointPicker::DataExtractionMode::References);
 		else
-			picker.SetDataExtractionMode(PointPicker::DataCurve);
+			picker.SetDataExtractionMode(PointPicker::DataExtractionMode::Curve);
 	}
 	else
-		picker.SetDataExtractionMode(PointPicker::DataNone);
+		picker.SetDataExtractionMode(PointPicker::DataExtractionMode::None);
 }
 
 //==========================================================================
@@ -356,6 +376,60 @@ void ControlsFrame::ExtractPlotDataToggle(wxCommandEvent& event)
 void ControlsFrame::ResetReferencesClicked(wxCommandEvent& WXUNUSED(event))
 {
 	picker.ResetReferences();
+	xScaleLog->Enable();
+	yScaleLog->Enable();
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		OnXScaleTypeChange
+//
+// Description:		Handles x-scale radio button events.
+//
+// Input Arguments:
+//		event	= wxCommandEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::OnXScaleTypeChange(wxCommandEvent& WXUNUSED(event))
+{
+	if (xScaleAuto->GetValue())
+		picker.SetXAxisScale(PointPicker::AxisScale::Auto);
+	else if (xScaleLinear->GetValue())
+		picker.SetXAxisScale(PointPicker::AxisScale::Linear);
+	else
+		picker.SetXAxisScale(PointPicker::AxisScale::Logarithmic);
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		OnXScaleTypeChange
+//
+// Description:		Handles y-scale radio button events.
+//
+// Input Arguments:
+//		event	= wxCommandEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::OnYScaleTypeChange(wxCommandEvent& WXUNUSED(event))
+{
+	if (yScaleAuto->GetValue())
+		picker.SetYAxisScale(PointPicker::AxisScale::Auto);
+	else if (yScaleLinear->GetValue())
+		picker.SetYAxisScale(PointPicker::AxisScale::Linear);
+	else
+		picker.SetYAxisScale(PointPicker::AxisScale::Logarithmic);
 }
 
 //==========================================================================
@@ -383,7 +457,7 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 		return;
 	}
 
-	std::vector<std::vector<PointPicker::Point> > data(picker.GetCurveData());
+	std::vector<std::vector<PointPicker::Point>> data(picker.GetCurveData());
 	if (data.size() == 0)
 	{
 		wxMessageBox(_T("No point data specified."), _T("No Data"));
@@ -462,7 +536,7 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 void ControlsFrame::PointAreReferencesClicked(wxCommandEvent& WXUNUSED(event))
 {
-	picker.SetDataExtractionMode(PointPicker::DataReferences);
+	picker.SetDataExtractionMode(PointPicker::DataExtractionMode::References);
 }
 
 //==========================================================================
@@ -483,7 +557,7 @@ void ControlsFrame::PointAreReferencesClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 void ControlsFrame::PointAreCurveDataClicked(wxCommandEvent& WXUNUSED(event))
 {
-	picker.SetDataExtractionMode(PointPicker::DataCurve);
+	picker.SetDataExtractionMode(PointPicker::DataExtractionMode::Curve);
 }
 
 //==========================================================================
@@ -533,7 +607,31 @@ void ControlsFrame::GridClicked(wxGridEvent& event)
 //==========================================================================
 void ControlsFrame::AddNewPoint()
 {
-	if (picker.GetDataExtractionMode() != PointPicker::DataCurve)
+	if (picker.GetDataExtractionMode() == PointPicker::DataExtractionMode::References)
+	{
+		const auto point(picker.GetNewestPoint());
+		if (point.x <= 0.0)
+		{
+			if (xScaleLog->GetValue())
+			{
+				xScaleAuto->SetValue(true);
+				picker.SetXAxisScale(PointPicker::AxisScale::Auto);
+			}
+			xScaleLog->Enable(false);
+		}
+
+		if (point.y <= 0.0)
+		{
+			if (yScaleLog->GetValue())
+			{
+				yScaleAuto->SetValue(true);
+				picker.SetYAxisScale(PointPicker::AxisScale::Auto);
+			}
+			yScaleLog->Enable(false);
+		}
+		return;
+	}
+	else if (picker.GetDataExtractionMode() != PointPicker::DataExtractionMode::Curve)
 		return;
 
 	const unsigned int xCol(picker.GetCurveIndex() * 2);

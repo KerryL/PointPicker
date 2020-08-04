@@ -56,7 +56,7 @@ bool PointPickerApp::OnInit()
 	mainFrame = new ControlsFrame();
 
 	// Make sure the MainFrame was successfully created
-	if (mainFrame == NULL)
+	if (!mainFrame)
 		return false;
 
 	// Make the window visible
