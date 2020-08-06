@@ -33,7 +33,8 @@ private:
 	void CreateControls();
 	wxStatusBar* BuildStatusBar();
 	void SetProperties();
-	void ResetGrid();
+	void ResetGrids();
+	void UpdateReferenceGrid();
 
 	PointPicker picker;
 
@@ -45,8 +46,13 @@ private:
 		idResetReferences,
 		idSavePlotData,
 
+		idCurveGrid,
+		idReferenceGrid,
+
 		idPointsAreReferences,
-		idPointsAreCurveData
+		idPointsAreCurveData,
+
+		idMenuRemoveReference
 	};
 
 	void CopyToClipboardToggle(wxCommandEvent& event);
@@ -55,11 +61,14 @@ private:
 	void SavePlotDataClicked(wxCommandEvent& event);
 	void PointAreReferencesClicked(wxCommandEvent& event);
 	void PointAreCurveDataClicked(wxCommandEvent& event);
-	void GridClicked(wxGridEvent& event);
+	void CurveGridClicked(wxGridEvent& event);
+	void ReferenceGridRightClicked(wxGridEvent& event);
+	void RemoveReferenceMenuClicked(wxCommandEvent& event);
 	void OnActivate(wxActivateEvent& event);
 
 	wxStaticBoxSizer* plotDataGroup;
-	wxGrid* grid;
+	wxGrid* curveGrid;
+	wxGrid* referenceGrid;
 	wxStatusBar* statusBar;
 
 	ImageFrame* imageFrame;

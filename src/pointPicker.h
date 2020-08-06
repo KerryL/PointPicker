@@ -56,6 +56,7 @@ public:
 	DataExtractionMode GetDataExtractionMode() const { return dataMode; }
 	unsigned int GetCurveIndex() const { return curveIndex; }
 
+	void RemoveReference(const unsigned int& i);
 	void ResetReferences();
 	void ResetCurveData(const unsigned int& curve);
 	void Reset();
@@ -85,6 +86,7 @@ public:
 	};
 
 	Point GetNewestPoint() const { return lastPoint; }
+	std::vector<Point> GetReferences() const;
 
 	std::vector<std::vector<PointPicker::Point>> GetCurveData() const;
 	Point ScaleSinglePoint(const double& rawX, const double& rawY,
@@ -132,7 +134,16 @@ private:
 
 	Point ScalePoint(const Point& imagePointIn) const;
 
-	static Eigen::Matrix3d ComputeTransformation(const std::vector<ReferencePair>& pairs, double& error);
+	enum class PlotScaling
+	{
+		Linear,
+		SemiLogX,
+		SemiLogY,
+		LogLog
+	};
+
+	static Eigen::Matrix3d ComputeTransformation(const std::vector<ReferencePair>& pairs,
+		const PlotScaling& scaling, double& error);
 };
 
 #endif// POINT_PICKER_H_

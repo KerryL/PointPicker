@@ -9,6 +9,7 @@
 
 // wxWidgets headers
 #include <wx/tglbtn.h>
+#include <wx/notebook.h>
 
 // Local headers
 #include "controlsFrame.h"
@@ -130,20 +131,38 @@ void ControlsFrame::CreateControls()
 	plotUpperSizer->Add(new wxButton(plotDataGroup->GetStaticBox(), idSavePlotData, _T("Save Data")));
 	plotDataGroup->AddSpacer(15);
 
-	grid = new wxGrid(plotDataGroup->GetStaticBox(), wxID_ANY);
-	grid->BeginBatch();
-	grid->CreateGrid(1, 2, wxGrid::wxGridSelectColumns);
-	grid->SetCellSize(0, 0, 1, 2);
-	grid->SetColLabelSize(0);
-	grid->SetRowLabelSize(0);
-#ifdef __WXMSW__
-	grid->SetMinSize(wxSize(-1, 200));
-#else
-	grid->SetMinSize(wxSize(450, 200));
-#endif
-	grid->EndBatch();
+	auto notebook(new wxNotebook(plotDataGroup->GetStaticBox(), wxID_ANY));
 
-	plotDataGroup->Add(grid, wxSizerFlags().Expand().Proportion(1));
+	curveGrid = new wxGrid(notebook, idCurveGrid);
+	curveGrid->BeginBatch();
+	curveGrid->CreateGrid(1, 2, wxGrid::wxGridSelectColumns);
+	curveGrid->SetCellSize(0, 0, 1, 2);
+	curveGrid->SetColLabelSize(0);
+	curveGrid->SetRowLabelSize(0);
+#ifdef __WXMSW__
+	curveGrid->SetMinSize(wxSize(-1, 200));
+#else
+	curveGrid->SetMinSize(wxSize(450, 200));
+#endif
+	curveGrid->EndBatch();
+
+	referenceGrid = new wxGrid(notebook, idReferenceGrid);
+	referenceGrid->BeginBatch();
+	referenceGrid->CreateGrid(1, 2, wxGrid::wxGridSelectRows);
+	referenceGrid->SetCellSize(0, 0, 1, 2);
+	referenceGrid->SetColLabelSize(0);
+	referenceGrid->SetRowLabelSize(0);
+#ifdef __WXMSW__
+	referenceGrid->SetMinSize(wxSize(-1, 200));
+#else
+	referenceGrid->SetMinSize(wxSize(450, 200));
+#endif
+	referenceGrid->EndBatch();
+
+	notebook->AddPage(curveGrid, _T("Curve"));
+	notebook->AddPage(referenceGrid, _T("References"));
+
+	plotDataGroup->Add(notebook, wxSizerFlags().Expand().Proportion(1));
 
 	// Set defaults
 	plotDataGroup->GetStaticBox()->Enable(false);
@@ -276,8 +295,10 @@ BEGIN_EVENT_TABLE(ControlsFrame, wxFrame)
 	EVT_RADIOBUTTON(idPointsAreReferences, ControlsFrame::PointAreReferencesClicked)
 	EVT_RADIOBUTTON(idPointsAreCurveData, ControlsFrame::PointAreCurveDataClicked)
 	EVT_ACTIVATE(ControlsFrame::OnActivate)
-	EVT_GRID_CELL_LEFT_CLICK(ControlsFrame::GridClicked)
-	EVT_GRID_SELECT_CELL(ControlsFrame::GridClicked)
+	EVT_GRID_CMD_CELL_LEFT_CLICK(idCurveGrid, ControlsFrame::CurveGridClicked)
+	EVT_GRID_CMD_SELECT_CELL(idCurveGrid, ControlsFrame::CurveGridClicked)
+	EVT_GRID_CMD_CELL_RIGHT_CLICK(idReferenceGrid, ControlsFrame::ReferenceGridRightClicked)
+	EVT_MENU(idMenuRemoveReference, ControlsFrame::RemoveReferenceMenuClicked)
 END_EVENT_TABLE()
 
 //==========================================================================
@@ -356,6 +377,7 @@ void ControlsFrame::ExtractPlotDataToggle(wxCommandEvent& event)
 void ControlsFrame::ResetReferencesClicked(wxCommandEvent& WXUNUSED(event))
 {
 	picker.ResetReferences();
+	UpdateReferenceGrid();
 }
 
 //==========================================================================
@@ -414,7 +436,7 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 	unsigned int i;
 	for (i = 0; i < data.size(); i++)
 	{
-		wxString label(grid->GetCellValue(0, i * 2));
+		wxString label(curveGrid->GetCellValue(0, i * 2));
 		if (label.IsEmpty())
 			ss << "X" << i << delimiter << "Y" << i << delimiter;
 		else
@@ -488,7 +510,7 @@ void ControlsFrame::PointAreCurveDataClicked(wxCommandEvent& WXUNUSED(event))
 
 //==========================================================================
 // Class:			ControlsFrame
-// Function:		GridClicked
+// Function:		CurveGridClicked
 //
 // Description:		Handles grid click events.
 //
@@ -502,17 +524,76 @@ void ControlsFrame::PointAreCurveDataClicked(wxCommandEvent& WXUNUSED(event))
 //		None
 //
 //==========================================================================
-void ControlsFrame::GridClicked(wxGridEvent& event)
+void ControlsFrame::CurveGridClicked(wxGridEvent& event)
 {
 	picker.SetCurveIndex(event.GetCol() / 2);
 
-	grid->SelectCol(event.GetCol());
+	curveGrid->SelectCol(event.GetCol());
 	if (event.GetCol() % 2 == 0)
-		grid->SelectCol(event.GetCol() + 1, true);
+		curveGrid->SelectCol(event.GetCol() + 1, true);
 	else
-		grid->SelectCol(event.GetCol() - 1, true);
+		curveGrid->SelectCol(event.GetCol() - 1, true);
 
 	event.Skip();
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		ReferenceGridRightClicked
+//
+// Description:		Handles grid right-click events.
+//
+// Input Arguments:
+//		event	= wxGridEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::ReferenceGridRightClicked(wxGridEvent& event)
+{
+	referenceGrid->SelectRow(event.GetRow(), event.ControlDown());
+	wxMenu menu;
+	menu.Append(idMenuRemoveReference, _T("Remove"), _T("Remove selected reference(s)"));
+	PopupMenu(&menu);
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		RemoveReferenceMenuClicked
+//
+// Description:		Handles remove reference menu item clicks.
+//
+// Input Arguments:
+//		event	= wxCommandEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::RemoveReferenceMenuClicked(wxCommandEvent& WXUNUSED(event))
+{
+	auto selections(referenceGrid->GetSelectedRows());
+
+	auto sortDescending([](int *a, int *b) -> int
+	{
+		if (*a < *b)
+			return 1;
+		else if (*a > *b)
+			return -1;
+		return 0;
+	});
+
+	selections.Sort(sortDescending);
+	for (const auto& r : selections)
+		picker.RemoveReference(r);
+	UpdateReferenceGrid();
 }
 
 //==========================================================================
@@ -533,49 +614,50 @@ void ControlsFrame::GridClicked(wxGridEvent& event)
 //==========================================================================
 void ControlsFrame::AddNewPoint()
 {
+	if (picker.GetDataExtractionMode() == PointPicker::DataExtractionMode::References)
+		UpdateReferenceGrid();
+	
 	if (picker.GetDataExtractionMode() != PointPicker::DataExtractionMode::Curve)
 		return;
 
 	const unsigned int xCol(picker.GetCurveIndex() * 2);
 	const unsigned int yCol(xCol + 1);
 
-	grid->BeginBatch();
+	curveGrid->BeginBatch();
 
 	int i(1);
 	while (true)
 	{
-		if (grid->GetNumberRows() == i)
+		if (curveGrid->GetNumberRows() == i)
 		{
-			grid->AppendRows();
-			int j;
-			for (j = 0; j < grid->GetNumberCols(); j++)
-				grid->SetReadOnly(i, j);
+			curveGrid->AppendRows();
+			for (int j = 0; j < curveGrid->GetNumberCols(); j++)
+				curveGrid->SetReadOnly(i, j);
 			break;
 		}
-		else if (grid->GetCellValue(i, xCol).IsEmpty())
+		else if (curveGrid->GetCellValue(i, xCol).IsEmpty())
 			break;
 
 		i++;
 	}
 
-	grid->SetCellValue(i, xCol, wxString::Format(_T("%f"), picker.GetNewestPoint().x));
-	grid->SetCellValue(i, yCol, wxString::Format(_T("%f"), picker.GetNewestPoint().y));
+	curveGrid->SetCellValue(i, xCol, wxString::Format(_T("%f"), picker.GetNewestPoint().x));
+	curveGrid->SetCellValue(i, yCol, wxString::Format(_T("%f"), picker.GetNewestPoint().y));
 
 	// If first point in new column, append two columns to the grid, too
 	if (i == 1)
 	{
-		grid->AppendCols(2);
-		grid->SetCellSize(0, yCol + 1, 1, 2);
-		grid->SetReadOnly(0, yCol + 1, false);
-		int j;
-		for (j = 1; j < grid->GetNumberRows(); j++)
+		curveGrid->AppendCols(2);
+		curveGrid->SetCellSize(0, yCol + 1, 1, 2);
+		curveGrid->SetReadOnly(0, yCol + 1, false);
+		for (int j = 1; j < curveGrid->GetNumberRows(); j++)
 		{
-			grid->SetReadOnly(j, yCol + 1);
-			grid->SetReadOnly(j, yCol + 2);
+			curveGrid->SetReadOnly(j, yCol + 1);
+			curveGrid->SetReadOnly(j, yCol + 2);
 		}
 	}
 
-	grid->EndBatch();
+	curveGrid->EndBatch();
 }
 
 //==========================================================================
@@ -602,16 +684,16 @@ bool ControlsFrame::LoadFiles(const wxArrayString &fileList)
 	wxImage newImage(fileList[0]);
 	imageFrame->SetImage(newImage);
 	picker.Reset();
-	ResetGrid();
+	ResetGrids();
 
 	return true;
 }
 
 //==========================================================================
 // Class:			ControlsFrame
-// Function:		ResetGrid
+// Function:		ResetGrids
 //
-// Description:		Resets the grid.
+// Description:		Resets the grids.
 //
 // Input Arguments:
 //		None
@@ -623,15 +705,51 @@ bool ControlsFrame::LoadFiles(const wxArrayString &fileList)
 //		None
 //
 //==========================================================================
-void ControlsFrame::ResetGrid()
+void ControlsFrame::ResetGrids()
 {
-	grid->BeginBatch();
-	if (grid->GetNumberCols() > 2)
-		grid->DeleteCols(2, grid->GetNumberCols() - 2);
-	if (grid->GetNumberRows() > 1)
-		grid->DeleteRows(1, grid->GetNumberRows() - 1);
-	grid->SetCellValue(0, 0, wxEmptyString);
-	grid->EndBatch();
+	curveGrid->BeginBatch();
+	if (curveGrid->GetNumberCols() > 2)
+		curveGrid->DeleteCols(2, curveGrid->GetNumberCols() - 2);
+	if (curveGrid->GetNumberRows() > 1)
+		curveGrid->DeleteRows(1, curveGrid->GetNumberRows() - 1);
+	curveGrid->SetCellValue(0, 0, wxEmptyString);
+	curveGrid->EndBatch();
+
+	UpdateReferenceGrid();
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		UpdateReferenceGrid
+//
+// Description:		Updates the reference grid to match the picker references.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::UpdateReferenceGrid()
+{
+	const auto refs(picker.GetReferences());
+	referenceGrid->BeginBatch();
+	if (static_cast<size_t>(referenceGrid->GetNumberRows()) > refs.size())
+		referenceGrid->DeleteRows(0, referenceGrid->GetNumberRows() - refs.size());
+	if (static_cast<size_t>(referenceGrid->GetNumberRows()) < refs.size())
+		referenceGrid->AppendRows(refs.size() - referenceGrid->GetNumberRows());
+
+	for (unsigned int r = 0; r < refs.size(); ++r)
+	{
+		referenceGrid->SetCellValue(r, 0, wxString::Format(_T("%f"), refs[r].x));
+		referenceGrid->SetCellValue(r, 1, wxString::Format(_T("%f"), refs[r].y));
+	}
+
+	referenceGrid->EndBatch();
 }
 
 //==========================================================================

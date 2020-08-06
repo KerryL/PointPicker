@@ -197,7 +197,7 @@ void PointPicker::UpdateTransformation()
 	// combination of linear and logarithmic scales in order to determine
 	// which combination provides the lowest error.
 	double xLinYLinError;
-	Eigen::MatrixXd xLinYLinTransformation(ComputeTransformation(referencePoints, xLinYLinError));
+	Eigen::MatrixXd xLinYLinTransformation(ComputeTransformation(referencePoints, PlotScaling::Linear, xLinYLinError));
 	if (referencePoints.size() == 4)// Not enough information to determine if scaling is logarithmic
 	{
 		transformationMatrix = xLinYLinTransformation;
@@ -205,10 +205,6 @@ void PointPicker::UpdateTransformation()
 		yIsLogarithmic = false;
 		return;
 	}
-
-	std::vector<ReferencePair> xLinYLogReferencePoints(referencePoints);
-	std::vector<ReferencePair> xLogYLinReferencePoints(referencePoints);
-	std::vector<ReferencePair> xLogYLogReferencePoints(referencePoints);
 
 	bool xLogIsOption(true);
 	bool yLogIsOption(true);
@@ -219,14 +215,6 @@ void PointPicker::UpdateTransformation()
 			xLogIsOption = false;
 		if (referencePoints[i].valueCoords.y <= 0.0)
 			yLogIsOption = false;
-
-		if (yLogIsOption)
-			xLinYLogReferencePoints[i].valueCoords.y = log10(referencePoints[i].valueCoords.y);
-		if (xLogIsOption)
-			xLogYLinReferencePoints[i].valueCoords.x = log10(referencePoints[i].valueCoords.x);
-
-		xLogYLogReferencePoints[i].valueCoords.x = xLogYLinReferencePoints[i].valueCoords.x;
-		xLogYLogReferencePoints[i].valueCoords.y = xLinYLogReferencePoints[i].valueCoords.y;
 	}
 
 	double xLinYLogError(std::numeric_limits<double>::max());
@@ -239,17 +227,24 @@ void PointPicker::UpdateTransformation()
 
 	if (yLogIsOption)
 	{
-		xLinYLogTransformation = ComputeTransformation(xLinYLogReferencePoints, xLinYLogError);
+		xLinYLogTransformation = ComputeTransformation(referencePoints, PlotScaling::SemiLogY, xLinYLogError);
 		if (xLogIsOption)
-			xLogYLogTransformation = ComputeTransformation(xLogYLogReferencePoints, xLogYLogError);
+			xLogYLogTransformation = ComputeTransformation(referencePoints, PlotScaling::SemiLogX, xLogYLogError);
 	}
 
 	if (xLogIsOption)
-		xLogYLinTransformation = ComputeTransformation(xLogYLinReferencePoints, xLogYLinError);
+		xLogYLinTransformation = ComputeTransformation(referencePoints, PlotScaling::LogLog, xLogYLinError);
 
-	if (xLinYLinError < xLinYLogError &&
-		xLinYLinError < xLogYLinError &&
-		xLinYLinError < xLogYLogError)
+	// For linearly-scaled axes, the log-scaled transforms can have very similar error values to the
+	// proper linear transforms but still give poor results.  When the correct scaling is logarithmic,
+	// however, the linear transform will give an error that is orders of magnitude higher than that
+	// given by the log transform.  So we assume linear unless the error is many times better when
+	// using a log transform.
+	const double linLogErrorRatio(1.0);
+
+	if (xLinYLinError < xLinYLogError * linLogErrorRatio &&
+		xLinYLinError < xLogYLinError * linLogErrorRatio &&
+		xLinYLinError < xLogYLogError * linLogErrorRatio)
 	{
 		transformationMatrix = xLinYLinTransformation;
 		xIsLogarithmic = false;
@@ -284,6 +279,7 @@ void PointPicker::UpdateTransformation()
 //
 // Input Arguments:
 //		paris	= const std::vector<ReferencePair>&
+//		scaling	= const PlotScaling&
 //
 // Output Arguments:
 //		error	= double&
@@ -293,7 +289,7 @@ void PointPicker::UpdateTransformation()
 //
 //==========================================================================
 Eigen::Matrix3d PointPicker::ComputeTransformation(
-	const std::vector<ReferencePair>& pairs, double& error)
+	const std::vector<ReferencePair>& pairs, const PlotScaling& scaling, double& error)
 {
 	Eigen::Matrix<double, Eigen::Dynamic, 9> model(2 * pairs.size(), 9);
 
@@ -303,23 +299,36 @@ Eigen::Matrix3d PointPicker::ComputeTransformation(
 	model.block(pairs.size(),0,pairs.size(),3).setZero();
 	model.block(pairs.size(),5,pairs.size(),1).setOnes();
 
+	const bool xLog(scaling == PlotScaling::LogLog || scaling == PlotScaling::SemiLogX);
+	const bool yLog(scaling == PlotScaling::LogLog || scaling == PlotScaling::SemiLogY);
+
 	for (unsigned int i = 0; i < pairs.size(); i++)
 	{
+		auto adjustValue([](const double& v, const bool& isLog)
+		{
+			if (isLog)
+				return log10(v);
+			return v;
+		});
+
+		const double xVal(adjustValue(pairs[i].valueCoords.x, xLog));
+		const double yVal(adjustValue(pairs[i].valueCoords.y, yLog));
+
 		// X-ordinate
 		model(i,0) = pairs[i].imageCoords.x;
 		model(i,1) = pairs[i].imageCoords.y;
 
-		model(i,6) = -pairs[i].valueCoords.x * pairs[i].imageCoords.x;
-		model(i,7) = -pairs[i].valueCoords.x * pairs[i].imageCoords.y;
-		model(i,8) = -pairs[i].valueCoords.x;
+		model(i,6) = -xVal * pairs[i].imageCoords.x;
+		model(i,7) = -xVal * pairs[i].imageCoords.y;
+		model(i,8) = -xVal;
 
 		// Y-ordinate
 		model(i + pairs.size(),3) = pairs[i].imageCoords.x;
 		model(i + pairs.size(),4) = pairs[i].imageCoords.y;
 
-		model(i + pairs.size(),6) = -pairs[i].valueCoords.y * pairs[i].imageCoords.x;
-		model(i + pairs.size(),7) = -pairs[i].valueCoords.y * pairs[i].imageCoords.y;
-		model(i + pairs.size(),8) = -pairs[i].valueCoords.y;
+		model(i + pairs.size(),6) = -yVal * pairs[i].imageCoords.x;
+		model(i + pairs.size(),7) = -yVal * pairs[i].imageCoords.y;
+		model(i + pairs.size(),8) = -yVal;
 	}
 
 	Eigen::JacobiSVD<Eigen::Matrix<double, Eigen::Dynamic, 9>> svd(model, Eigen::ComputeFullV);
@@ -329,10 +338,71 @@ Eigen::Matrix3d PointPicker::ComputeTransformation(
 	transform.row(1) = nullspace.segment<3>(3);
 	transform.row(2) = nullspace.tail<3>();
 
-	Eigen::VectorXd errorVector(model * nullspace);
-	error = errorVector.dot(errorVector);
+	// This doesn't work for log-scaled axes
+	/*Eigen::VectorXd errorVector(model * nullspace);
+	error = errorVector.dot(errorVector);*/
+
+	error = 0.0;
+	for (const auto& p : pairs)
+	{
+		Eigen::Vector3d imagePoint(p.imageCoords.x, p.imageCoords.y, 1.0);
+		Eigen::Vector3d plotPoint(transform * imagePoint);
+		Point result(plotPoint(0) / plotPoint(2), plotPoint(1) / plotPoint(2));
+		if (xLog)
+			result.x = pow(10, result.x);
+		if (yLog)
+			result.y = pow(10, result.y);
+
+		error += (result.x - p.valueCoords.x) * (result.x - p.valueCoords.x) + (result.y - p.valueCoords.y) * (result.y - p.valueCoords.y);
+	}
 
 	return transform;
+}
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		GetReferences
+//
+// Description:		Returns list of references.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		std::vector<PointPicker::Point>
+//
+//==========================================================================
+std::vector<PointPicker::Point> PointPicker::GetReferences() const
+{
+	std::vector<Point> refs(referencePoints.size());
+	for (unsigned int i = 0; i < refs.size(); ++i)
+		refs[i] = referencePoints[i].valueCoords;
+
+	return refs;
+}
+
+//==========================================================================
+// Class:			PointPicker
+// Function:		RemoveReference
+//
+// Description:		Removes the specified element from the list of references.
+//
+// Input Arguments:
+//		i	= const unsigned int&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void PointPicker::RemoveReference(const unsigned int& i)
+{
+	referencePoints.erase(referencePoints.begin() + i);
 }
 
 //==========================================================================
