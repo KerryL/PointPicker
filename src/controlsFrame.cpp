@@ -44,7 +44,7 @@
 //		None
 //
 //==========================================================================
-ControlsFrame::ControlsFrame() : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaultPosition,
+ControlsFrame::ControlsFrame() : wxFrame(nullptr, wxID_ANY, wxEmptyString, wxDefaultPosition,
 								 wxDefaultSize, wxDEFAULT_FRAME_STYLE)
 {
 	CreateControls();
@@ -101,11 +101,11 @@ void ControlsFrame::CreateControls()
 	wxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
 	wxPanel *panel = new wxPanel(this);
 	wxSizer *panelSizer = new wxBoxSizer(wxVERTICAL);
-	topSizer->Add(panel,1, wxGROW);
+	topSizer->Add(panel, wxSizerFlags().Expand().Proportion(1));
 	panel->SetSizer(panelSizer);
 
 	wxSizer *mainSizer = new wxBoxSizer(wxVERTICAL);
-	panelSizer->Add(mainSizer, 1, wxALL | wxGROW, 5);
+	panelSizer->Add(mainSizer, wxSizerFlags().Expand().Proportion(1).Border(wxALL, 5));
 
 	wxSizer *modeSizer = new wxBoxSizer(wxHORIZONTAL);
 	modeSizer->Add(new wxToggleButton(panel, idCopyToClipboard, _T("Copy Pixel To Clipboard")), 1);
@@ -115,10 +115,10 @@ void ControlsFrame::CreateControls()
 	mainSizer->AddSpacer(15);
 
 	plotDataGroup = new wxStaticBoxSizer(wxVERTICAL, panel, _T("Plot Data Extraction"));
-	mainSizer->Add(plotDataGroup, 1, wxGROW);
+	mainSizer->Add(plotDataGroup, wxSizerFlags().Expand().Proportion(1));
 	wxSizer *plotUpperSizer = new wxBoxSizer(wxHORIZONTAL);
 	wxSizer *radioSizer = new wxBoxSizer(wxVERTICAL);
-	plotDataGroup->Add(plotUpperSizer, 0, wxGROW);
+	plotDataGroup->Add(plotUpperSizer, wxSizerFlags().Expand());
 
 	radioSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreReferences, _T("Points are references")));
 	radioSizer->Add(new wxRadioButton(plotDataGroup->GetStaticBox(), idPointsAreCurveData, _T("Points are on curve")));
@@ -143,7 +143,7 @@ void ControlsFrame::CreateControls()
 #endif
 	grid->EndBatch();
 
-	plotDataGroup->Add(grid, 1, wxGROW);
+	plotDataGroup->Add(grid, wxSizerFlags().Expand().Proportion(1));
 
 	// Set defaults
 	plotDataGroup->GetStaticBox()->Enable(false);
@@ -299,9 +299,9 @@ END_EVENT_TABLE()
 void ControlsFrame::CopyToClipboardToggle(wxCommandEvent& event)
 {
 	if (event.IsChecked())
-		picker.SetClipboardMode(PointPicker::ClipBoth);
+		picker.SetClipboardMode(PointPicker::ClipboardMode::Both);
 	else
-		picker.SetClipboardMode(PointPicker::ClipNone);
+		picker.SetClipboardMode(PointPicker::ClipboardMode::None);
 }
 
 //==========================================================================
@@ -329,12 +329,12 @@ void ControlsFrame::ExtractPlotDataToggle(wxCommandEvent& event)
 		assert(references);
 
 		if (references->GetValue())
-			picker.SetDataExtractionMode(PointPicker::DataReferences);
+			picker.SetDataExtractionMode(PointPicker::DataExtractionMode::References);
 		else
-			picker.SetDataExtractionMode(PointPicker::DataCurve);
+			picker.SetDataExtractionMode(PointPicker::DataExtractionMode::Curve);
 	}
 	else
-		picker.SetDataExtractionMode(PointPicker::DataNone);
+		picker.SetDataExtractionMode(PointPicker::DataExtractionMode::None);
 }
 
 //==========================================================================
@@ -383,7 +383,7 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 		return;
 	}
 
-	std::vector<std::vector<PointPicker::Point> > data(picker.GetCurveData());
+	std::vector<std::vector<PointPicker::Point>> data(picker.GetCurveData());
 	if (data.size() == 0)
 	{
 		wxMessageBox(_T("No point data specified."), _T("No Data"));
@@ -462,7 +462,7 @@ void ControlsFrame::SavePlotDataClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 void ControlsFrame::PointAreReferencesClicked(wxCommandEvent& WXUNUSED(event))
 {
-	picker.SetDataExtractionMode(PointPicker::DataReferences);
+	picker.SetDataExtractionMode(PointPicker::DataExtractionMode::References);
 }
 
 //==========================================================================
@@ -483,7 +483,7 @@ void ControlsFrame::PointAreReferencesClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 void ControlsFrame::PointAreCurveDataClicked(wxCommandEvent& WXUNUSED(event))
 {
-	picker.SetDataExtractionMode(PointPicker::DataCurve);
+	picker.SetDataExtractionMode(PointPicker::DataExtractionMode::Curve);
 }
 
 //==========================================================================
@@ -533,7 +533,7 @@ void ControlsFrame::GridClicked(wxGridEvent& event)
 //==========================================================================
 void ControlsFrame::AddNewPoint()
 {
-	if (picker.GetDataExtractionMode() != PointPicker::DataCurve)
+	if (picker.GetDataExtractionMode() != PointPicker::DataExtractionMode::Curve)
 		return;
 
 	const unsigned int xCol(picker.GetCurveIndex() * 2);

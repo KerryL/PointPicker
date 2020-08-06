@@ -34,19 +34,19 @@ public:
 		const double& xScale, const double& yScale,
 		const double& xOffset, const double& yOffset);
 
-	enum ClipboardMode
+	enum class ClipboardMode
 	{
-		ClipNone,
-		ClipX,
-		ClipY,
-		ClipBoth
+		None,
+		X,
+		Y,
+		Both
 	};
 
-	enum DataExtractionMode
+	enum class DataExtractionMode
 	{
-		DataNone,
-		DataReferences,
-		DataCurve
+		None,
+		References,
+		Curve
 	};
 
 	void SetClipboardMode(const ClipboardMode& mode) { clipMode = mode; }
@@ -86,7 +86,7 @@ public:
 
 	Point GetNewestPoint() const { return lastPoint; }
 
-	std::vector<std::vector<PointPicker::Point> > GetCurveData() const;
+	std::vector<std::vector<PointPicker::Point>> GetCurveData() const;
 	Point ScaleSinglePoint(const double& rawX, const double& rawY,
 		const double& xScale, const double& yScale,
 		const double& xOffset, const double& yOffset, double& x, double& y) const;
@@ -118,7 +118,7 @@ private:
 	};
 
 	std::vector<ReferencePair> referencePoints;
-	std::vector<std::vector<Point> > curvePoints;
+	std::vector<std::vector<Point>> curvePoints;
 
 	Point lastPoint;
 

@@ -32,28 +32,7 @@ ImageDropTarget::ImageDropTarget(ControlsFrame &mainFrame) : mainFrame(mainFrame
 
 	SetDataObject(dataObject);
 
-	buffer = NULL;
-}
-
-//==========================================================================
-// Class:			ImageDropTarget
-// Function:		~ImageDropTarget
-//
-// Description:		Destructor for ImageDropTarget class.
-//
-// Input Arguments:
-//		None
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		None
-//
-//==========================================================================
-ImageDropTarget::~ImageDropTarget()
-{
-	ClearBuffer();
+	buffer = nullptr;
 }
 
 //==========================================================================
@@ -102,45 +81,20 @@ wxDragResult ImageDropTarget::OnData(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y), w
     if (!GetData())
         return wxDragNone;
 
-	ClearBuffer();
-
 	wxDataObjectComposite *dataObject = static_cast<wxDataObjectComposite*>(m_dataObject);
 	size_t bufferSize = dataObject->GetDataSize(dataObject->GetReceivedFormat());
 
-	buffer = new char[bufferSize];
-	if (!dataObject->GetDataHere(dataObject->GetReceivedFormat(), buffer))
+	buffer = std::make_unique<char[]>(bufferSize);
+	if (!dataObject->GetDataHere(dataObject->GetReceivedFormat(), buffer.get()))
 		return wxDragNone;
 
 	if (dataObject->GetReceivedFormat().GetType() == wxDF_FILENAME)
 	{
 		wxFileDataObject fileData;
-		fileData.SetData(bufferSize, buffer);
+		fileData.SetData(bufferSize, buffer.get());
 		return OnDropFiles(fileData.GetFilenames()) ? def : wxDragNone;
 	}
 	
 	assert(false);
 	return wxDragNone;
-}
-
-//==========================================================================
-// Class:			ImageDropTarget
-// Function:		ClearBuffer
-//
-// Description:		Safely deletes the buffer contents.
-//
-// Input Arguments:
-//		None
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		None
-//
-//==========================================================================
-void ImageDropTarget::ClearBuffer()
-{
-	if (buffer)
-		delete [] buffer;
-	buffer = NULL;
 }
