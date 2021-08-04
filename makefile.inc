@@ -53,7 +53,7 @@ RANLIB = ranlib
 LIBOUTDIR = $(CURDIR)/lib/
 
 # Compiler flags
-CFLAGS = -Wall -Wextra $(LIB_INCDIRS) $(INCDIRS) -std=c++11 -pedantic -pthread `wx-config --version="3.1" --cflags`
+CFLAGS = -Wall -Wextra $(LIB_INCDIRS) $(INCDIRS) -std=c++17 -pedantic -pthread `wx-config --version="3.1" --cflags`
 CFLAGS_D = -g $(CFLAGS)
 
 # Linker flags

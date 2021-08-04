@@ -78,8 +78,8 @@ bool ImageDropTarget::OnDropFiles(const wxArrayString &filenames)
 //==========================================================================
 wxDragResult ImageDropTarget::OnData(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y), wxDragResult def)
 {
-    if (!GetData())
-        return wxDragNone;
+	if (!GetData())
+		return wxDragNone;
 
 	wxDataObjectComposite *dataObject = static_cast<wxDataObjectComposite*>(m_dataObject);
 	size_t bufferSize = dataObject->GetDataSize(dataObject->GetReceivedFormat());
