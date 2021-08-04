@@ -64,7 +64,7 @@ ControlsFrame::ControlsFrame() : wxFrame(nullptr, wxID_ANY, wxEmptyString, wxDef
 // Description:		Handles window getting focus events.
 //
 // Input Arguments:
-//		event	= wxFocusEvent&
+//		event	= wxActivateEvent&
 //
 // Output Arguments:
 //		None
@@ -78,6 +78,30 @@ void ControlsFrame::OnActivate(wxActivateEvent& event)
 	if (imageFrame && !imageFrame->HasFocus())
 		imageFrame->Raise();
 
+	event.Skip();
+}
+
+//==========================================================================
+// Class:			ControlsFrame
+// Function:		OnClose
+//
+// Description:		Handles window close events.
+//
+// Input Arguments:
+//		event	= wxCloseEvent&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ControlsFrame::OnClose(wxCloseEvent& event)
+{
+	if (!IsActive())
+		wxQueueEvent(this, new wxActivateEvent());// fix for application not closing if closed from taskbar when not focused; see https://forums.wxwidgets.org/viewtopic.php?t=43498
+		
 	event.Skip();
 }
 
@@ -599,6 +623,7 @@ void ControlsFrame::RemoveReferenceMenuClicked(wxCommandEvent& WXUNUSED(event))
 //==========================================================================
 // Class:			ControlsFrame
 // Function:		AddNewPoint
+//
 //
 // Description:		Adds the next point to the grid.
 //

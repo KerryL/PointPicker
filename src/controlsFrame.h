@@ -65,6 +65,7 @@ private:
 	void ReferenceGridRightClicked(wxGridEvent& event);
 	void RemoveReferenceMenuClicked(wxCommandEvent& event);
 	void OnActivate(wxActivateEvent& event);
+	void OnClose(wxCloseEvent& event);
 
 	wxStaticBoxSizer* plotDataGroup;
 	wxGrid* curveGrid;
